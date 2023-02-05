@@ -21,7 +21,7 @@ type actionRepo interface {
 	ReadRuns(actionname interface{}) ([]models.Run, error)
 	// ReadExtendedIDs(ids []interface{}) ([]models.Action, error)
 	// ReadAllExtended() ([]models.Action, error)
-	ReadExtendedv3(name interface{}) (*models.ActionExtendedv3, error)
+	ReadExtendedv3(name interface{}) (*models.ActionExt, error)
 }
 
 type ActionService struct {
@@ -91,13 +91,13 @@ func (s *ActionService) Update(name string, data map[string]interface{}) (*model
 	return s.repo.Update(name, data)
 }
 
-func (s *ActionService) ReadExtendedv3(name interface{}) (*models.ActionExtendedv3, error) {
+func (s *ActionService) ReadExtendedv3(name interface{}) (*models.ActionExt, error) {
 	return s.repo.ReadExtendedv3(name)
 }
 
 type JSON = map[string]interface{}
 
-func (s *ActionService) InitRun(r *models.ActionExtendedv3) ([]models.Run, error) {
+func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
 	if s.runLogService == nil {
 		return nil, errors.New("no Run service instantiated")
 	}
@@ -106,7 +106,7 @@ func (s *ActionService) InitRun(r *models.ActionExtendedv3) ([]models.Run, error
 	return s.runLogService.ReadByReqID()
 }
 
-func (s *ActionService) run(r *models.ActionExtendedv3) error {
+func (s *ActionService) run(r *models.ActionExt) error {
 	fmt.Printf("Start run %s\n", r.Name)
 	execLog := models.NewRun(r.Name,
 		s.runLogService.repo.GetUsername(),

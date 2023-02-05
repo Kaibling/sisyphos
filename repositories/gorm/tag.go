@@ -10,7 +10,7 @@ import (
 
 type Tag struct {
 	DBModel
-	Name        string
+	Name        string `gorm:"index:idx_name,unique"`
 	Description string
 }
 

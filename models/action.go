@@ -10,11 +10,11 @@ type Action struct {
 	Variables map[string]interface{} `json:"variables"`
 }
 
-type ActionExtendedv3 struct {
+type ActionExt struct {
 	Name      string
 	Groups    []string `json:"groups"`
 	Script    string
-	Triggers  []ActionExtendedv3
+	Triggers  []ActionExt
 	Tags      []string
 	Hosts     []Connection
 	Variables map[string]interface{}

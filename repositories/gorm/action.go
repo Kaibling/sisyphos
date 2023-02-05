@@ -150,7 +150,7 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	return ReduceExtended(a), nil
 }
 
-func (r *ActionRepo) ReadExtendedv3(name interface{}) (*models.ActionExtendedv3, error) {
+func (r *ActionRepo) ReadExtendedv3(name interface{}) (*models.ActionExt, error) {
 	var a Action
 	err := r.db.Model(&Action{}).Where("name = ?", name.(string)).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").First(&a).Error
 	if err != nil {
@@ -172,7 +172,7 @@ func (r *ActionRepo) ReadExtendedv3(name interface{}) (*models.ActionExtendedv3,
 		}
 	}
 	a.Connections = conns
-	m := UnmarshalActionExtendedv3(a)
+	m := UnmarshalActionExt(a)
 	return &m, nil
 }
 
@@ -394,7 +394,7 @@ func UnmarshalAction(a Action) models.Action {
 	}
 }
 
-func ReduceExtended(m *models.ActionExtendedv3) *models.Action {
+func ReduceExtended(m *models.ActionExt) *models.Action {
 	triggers := []string{}
 	for _, t := range m.Triggers {
 		triggers = append(triggers, t.Name)
@@ -417,7 +417,7 @@ func ReduceExtended(m *models.ActionExtendedv3) *models.Action {
 	}
 }
 
-func UnmarshalActionExtendedv3(a Action) models.ActionExtendedv3 {
+func UnmarshalActionExt(a Action) models.ActionExt {
 	v := map[string]interface{}{}
 	if a.Variables.String() != "null" {
 		err := json.Unmarshal(a.Variables.MarshalJSON())
@@ -426,21 +426,21 @@ func UnmarshalActionExtendedv3(a Action) models.ActionExtendedv3 {
 		}
 	}
 
-	return models.ActionExtendedv3{
+	return models.ActionExt{
 		Name:      a.Name,
 		Script:    a.Script,
 		Groups:    a.Groups,
-		Triggers:  UnmarshalArrayActionExtendedv3(a.TriggersRef),
+		Triggers:  UnmarshalArrayActionExt(a.TriggersRef),
 		Hosts:     a.Connections,
 		Tags:      a.Tags,
 		Variables: v,
 	}
 }
 
-func UnmarshalArrayActionExtendedv3(a []Action) []models.ActionExtendedv3 {
-	actions := []models.ActionExtendedv3{}
+func UnmarshalArrayActionExt(a []Action) []models.ActionExt {
+	actions := []models.ActionExt{}
 	for _, m := range a {
-		actions = append(actions, UnmarshalActionExtendedv3(m))
+		actions = append(actions, UnmarshalActionExt(m))
 	}
 	return actions
 }

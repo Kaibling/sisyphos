@@ -15,7 +15,6 @@ type Run struct {
 	User      string
 	ActionID  string `gorm:"size:255"`
 	Action    Action
-	// ActionExtended models.ActionExtendedv3 `gorm:"-"`
 	StartTime time.Time
 	EndTime   time.Time
 	Duration  string
