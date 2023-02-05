@@ -220,24 +220,6 @@ func (r *ActionRepo) GetID(name string) (string, error) {
 	return a.ID, nil
 }
 
-func (r *ActionRepo) GetHostID(name string) (string, error) {
-	var a Host
-	err := r.db.Model(&Host{}).Where(&Host{Name: name}).Find(&a).Error
-	if err != nil {
-		return "", err
-	}
-	return a.ID, nil
-}
-
-func (r *ActionRepo) GetTagID(name string) (string, error) {
-	var a Tag
-	err := r.db.Model(&Tag{}).Where(&Tag{Name: name}).First(&a).Error
-	if err != nil {
-		return "", err
-	}
-	return a.ID, nil
-}
-
 func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 	ext, err := r.ReadExtIDs(ids)
 	if err != nil {
@@ -259,16 +241,6 @@ func (r *ActionRepo) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	return UnmarshalArrayRun(a), nil
 }
 
-// func (r *ActionRepo) ReadAll() ([]models.Action, error) {
-// 	var a []Action
-// 	err := r.db.Model(&Action{}).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").Find(&a).Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	m := UnmarshalArrayAction(a)
-// 	return m, nil
-// }
-
 func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, error) {
 	uAction := MarshalAction(*d)
 	if uid, err := r.GetID(name); err != nil {
@@ -276,35 +248,49 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	} else {
 		uAction.ID = uid
 	}
+	tx := r.getDB().Begin()
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Println(e.(error).Error())
+			tx.Rollback()
+		}
+	}()
 	if uAction.Triggers != nil {
-		if err := r.getDB().Model(&uAction).Association("TriggersRef").Replace(uAction.TriggersRef); err != nil {
+		if err := tx.Model(&uAction).Association("TriggersRef").Replace(uAction.TriggersRef); err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 	}
 	if uAction.Groups != nil {
-		if err := r.getDB().Model(&uAction).Association("GroupsRef").Replace(uAction.GroupsRef); err != nil {
+		if err := tx.Model(&uAction).Association("GroupsRef").Replace(uAction.GroupsRef); err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 	}
 	if uAction.Connections != nil {
 		for _, conn := range uAction.Connections {
-			hostID, err := r.GetHostID(conn.Name)
+			hostRepo := NewHostRepo(tx)
+			hostID, err := hostRepo.GetID(conn.Name)
 			if err != nil {
+				tx.Rollback()
 				return nil, err
 			}
 			ah := ActionsHosts{HostID: hostID, ActionID: uAction.ID, Port: conn.Port}
-			err = r.getDB().Clauses(clause.OnConflict{
+			err = tx.Clauses(clause.OnConflict{
 				DoUpdates: clause.Assignments(map[string]interface{}{"port": conn.Port}),
 			}).Model(&ActionsHosts{}).Create(&ah).Error
 			if err != nil {
+				tx.Rollback()
 				return nil, err
 			}
 		}
 	}
 
-	if err := r.getDB().Omit("AllowsRef.*").Omit("UsersRef.*").Updates(&uAction).Error; err != nil {
+	if err := tx.Omit("AllowsRef.*").Omit("UsersRef.*").Omit("GroupsRef.*").Updates(&uAction).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
+	tx.Commit()
 	return r.ReadByName(name)
 }
 
