@@ -48,13 +48,13 @@ func Create(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
 	name := chi.URLParam(r, "name")
-	var m map[string]interface{}
+	var m models.Action //map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
 		return
 	}
-	actions, err := actionService.Update(name, m)
+	actions, err := actionService.Update(name, &m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
 		return
@@ -105,7 +105,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 func Execute(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
 	name := chi.URLParam(r, "name")
-	extActions, err := actionService.ReadExtendedv3(name)
+	extActions, err := actionService.ReadExt(name)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
 		return

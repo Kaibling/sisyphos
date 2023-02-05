@@ -18,7 +18,7 @@ type Connection struct {
 }
 
 type Service struct {
-	HostName string `json:"host_name"`
+	HostName string `json:"name"`
 	Port     string `json:"port"`
 	Order    int    `json:"order,omitempty"`
 }

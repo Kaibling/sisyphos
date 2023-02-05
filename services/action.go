@@ -12,16 +12,13 @@ import (
 )
 
 type actionRepo interface {
-	Update(name string, data map[string]interface{}) (*models.Action, error)
+	Update(name string, d *models.Action) (*models.Action, error)
 	Create(actions []models.Action) ([]models.Action, error)
 	ReadByName(name interface{}) (*models.Action, error)
-	// ReadExtended(name interface{}) (*models.Action, error)
-	ReadAll() ([]models.Action, error)
 	ReadIDs(ids []interface{}) ([]models.Action, error)
+	ReadExtIDs(ids []interface{}) ([]models.ActionExt, error)
 	ReadRuns(actionname interface{}) ([]models.Run, error)
-	// ReadExtendedIDs(ids []interface{}) ([]models.Action, error)
-	// ReadAllExtended() ([]models.Action, error)
-	ReadExtendedv3(name interface{}) (*models.ActionExt, error)
+	ReadExt(name interface{}) (*models.ActionExt, error)
 }
 
 type ActionService struct {
@@ -56,9 +53,9 @@ func (s *ActionService) ReadByName(name interface{}) (*models.Action, error) {
 	return s.repo.ReadByName(name)
 }
 
-func (s *ActionService) ReadAll() ([]models.Action, error) {
-	return s.repo.ReadAll()
-}
+// func (s *ActionService) ReadAll() ([]models.Action, error) {
+// 	return s.repo.ReadAll()
+// }
 
 func (s *ActionService) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	return s.repo.ReadRuns(actionname)
@@ -87,12 +84,12 @@ func (s *ActionService) ReadAllFiltered(md metadata.MetaData, f filter) ([]model
 	return s.repo.ReadIDs(id)
 }
 
-func (s *ActionService) Update(name string, data map[string]interface{}) (*models.Action, error) {
+func (s *ActionService) Update(name string, data *models.Action) (*models.Action, error) {
 	return s.repo.Update(name, data)
 }
 
-func (s *ActionService) ReadExtendedv3(name interface{}) (*models.ActionExt, error) {
-	return s.repo.ReadExtendedv3(name)
+func (s *ActionService) ReadExt(name interface{}) (*models.ActionExt, error) {
+	return s.repo.ReadExt(name)
 }
 
 type JSON = map[string]interface{}
@@ -108,12 +105,12 @@ func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
 
 func (s *ActionService) run(r *models.ActionExt) error {
 	fmt.Printf("Start run %s\n", r.Name)
-	execLog := models.NewRun(r.Name,
+	execLog := models.NewRun(*r.Name,
 		s.runLogService.repo.GetUsername(),
 		s.runLogService.repo.GetRequestID())
 
 	for _, tr := range r.Triggers {
-		t, err := s.ReadExtendedv3(tr.Name)
+		t, err := s.ReadExt(tr.Name)
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
@@ -127,7 +124,7 @@ func (s *ActionService) run(r *models.ActionExt) error {
 		s.run(t)
 		// TODO cancel if error ???
 	}
-	if r.Script != "" {
+	if *r.Script != "" {
 		fmt.Printf("run %s has script %s\n", r.Name, r.Script)
 		if len(r.Hosts) == 0 {
 			e := fmt.Errorf("no hosts for '%s'", r.Name)
@@ -147,7 +144,7 @@ func (s *ActionService) run(r *models.ActionExt) error {
 				Username: r.Variables["ssh_user"].(string),
 				Password: r.Variables["ssh_password"].(string),
 			}
-			cmd := replaceVariables(r.Script, r.Variables)
+			cmd := replaceVariables(*r.Script, r.Variables)
 			output, err := sshService.RunCommand(cfg, cmd)
 			// TODO cancel if error ???
 			execLog.Output = output

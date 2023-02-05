@@ -65,7 +65,7 @@ func (g *Group) AfterFind(tx *gorm.DB) (err error) {
 		g.Users = append(g.Users, u.Name)
 	}
 	for _, a := range g.AllowsRef {
-		g.Allows = append(g.Allows, a.Name)
+		g.Allows = append(g.Allows, *a.Name)
 	}
 	return
 }

@@ -53,3 +53,10 @@ func ReadPtr[T any](d *T) T {
 	}
 	return *d
 }
+
+func PtrDefault[T any](d *T) *T {
+	if d == nil {
+		return new(T)
+	}
+	return d
+}

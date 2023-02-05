@@ -129,7 +129,7 @@ func UnmarshalRun(a Run) models.Run {
 		RunID:     a.RunID,
 		RequestID: a.RequestID,
 		User:      a.User,
-		Action:    a.Action.Name,
+		Action:    *a.Action.Name,
 		StartTime: a.StartTime,
 		EndTime:   a.EndTime,
 		Duration:  a.Duration,

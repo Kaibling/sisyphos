@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"sisyphos/lib/utils"
 	"sisyphos/models"
 
 	"gorm.io/datatypes"
@@ -14,8 +15,8 @@ import (
 
 type Action struct {
 	DBModel
-	Name        string `gorm:"unique"`
-	Script      string
+	Name        *string `gorm:"unique"`
+	Script      *string
 	Triggers    []string            `gorm:"-"`
 	TriggersRef []Action            `gorm:"many2many:action_triggers;"`
 	Groups      []string            `gorm:"-"`
@@ -66,7 +67,7 @@ func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 func (a *Action) AfterFind(tx *gorm.DB) (err error) {
 	triggers := []string{}
 	for _, s := range a.TriggersRef {
-		triggers = append(triggers, s.Name)
+		triggers = append(triggers, *s.Name)
 	}
 	a.Triggers = triggers
 
@@ -106,17 +107,26 @@ func (r *ActionRepo) getDB() *gorm.DB {
 }
 
 func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
-	resp := []models.Action{}
+	newIDs := []any{}
+	tx := r.getDB().Begin()
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Println(e.(error).Error())
+			tx.Rollback()
+		}
+	}()
 	for _, a := range actions {
 		action := MarshalAction(a)
-		err := r.getDB().Omit("HostsRef.*").Omit("TriggersRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
+		err := tx.Omit("HostsRef.*").Omit("TriggersRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 		for _, c := range action.Connections {
-			hostRepo := NewHostRepo(r.db)
+			hostRepo := NewHostRepo(tx)
 			hostID, err := hostRepo.GetID(c.Name)
 			if err != nil {
+				tx.Rollback()
 				return nil, err
 			}
 			newActionHost := ActionsHosts{
@@ -126,31 +136,29 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 				Order:    c.Order,
 			}
 
-			if err := r.db.Model(&ActionsHosts{}).Create(&newActionHost).Error; err != nil {
+			if err := tx.Model(&ActionsHosts{}).Create(&newActionHost).Error; err != nil {
 				if err != nil {
+					tx.Rollback()
 					return nil, err
 				}
 			}
-		}
 
-		newAction, err := r.ReadByName(action.Name)
-		if err != nil {
-			return nil, err
 		}
-		resp = append(resp, *newAction)
+		newIDs = append(newIDs, action.ID)
 	}
-	return resp, nil
+	tx.Commit()
+	return r.ReadIDs(newIDs)
 }
 
 func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
-	a, err := r.ReadExtendedv3(name)
+	a, err := r.ReadExt(name)
 	if err != nil {
 		return nil, err
 	}
 	return ReduceExtended(a), nil
 }
 
-func (r *ActionRepo) ReadExtendedv3(name interface{}) (*models.ActionExt, error) {
+func (r *ActionRepo) ReadExt(name interface{}) (*models.ActionExt, error) {
 	var a Action
 	err := r.db.Model(&Action{}).Where("name = ?", name.(string)).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").First(&a).Error
 	if err != nil {
@@ -175,10 +183,35 @@ func (r *ActionRepo) ReadExtendedv3(name interface{}) (*models.ActionExt, error)
 	m := UnmarshalActionExt(a)
 	return &m, nil
 }
+func (r *ActionRepo) ReadExtIDs(ids []interface{}) ([]models.ActionExt, error) {
+	var actions []Action
+	if err := r.db.Model(&Action{}).Where("id IN ?", ids).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").Find(&actions).Error; err != nil {
+		return nil, err
+	}
+	actionExt := []models.ActionExt{}
+	for _, action := range actions {
+		ah := []ActionsHosts{}
+		if err := r.db.Model(&ActionsHosts{}).Where("action_id = ?", action.ID).Find(&ah).Error; err != nil {
+			return nil, err
+		}
 
+		conns := []models.Connection{}
+		for _, host := range action.HostsRef {
+			for _, rel := range ah {
+				if rel.HostID == host.ID {
+					mh := UnmarshalHost(host)
+					conns = append(conns, models.Connection{Host: mh, Port: rel.Port, Order: rel.Order})
+				}
+			}
+		}
+		action.Connections = conns
+		actionExt = append(actionExt, UnmarshalActionExt(action))
+	}
+	return actionExt, nil
+}
 func (r *ActionRepo) GetID(name string) (string, error) {
 	var a Action
-	if err := r.db.Model(&Action{}).Where(&Action{Name: name}).First(&a).Error; err != nil {
+	if err := r.db.Model(&Action{}).Where(&Action{Name: &name}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -206,13 +239,15 @@ func (r *ActionRepo) GetTagID(name string) (string, error) {
 }
 
 func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
-	var a []Action
-	err := r.db.Model(&Action{}).Where("id IN ?", ids).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").Find(&a).Error
+	ext, err := r.ReadExtIDs(ids)
 	if err != nil {
 		return nil, err
 	}
-	m := UnmarshalArrayAction(a)
-	return m, nil
+	actions := []models.Action{}
+	for _, a := range ext {
+		actions = append(actions, *ReduceExtended(&a))
+	}
+	return actions, nil
 }
 
 func (r *ActionRepo) ReadRuns(actionname interface{}) ([]models.Run, error) {
@@ -224,135 +259,53 @@ func (r *ActionRepo) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	return UnmarshalArrayRun(a), nil
 }
 
-func (r *ActionRepo) ReadAll() ([]models.Action, error) {
-	var a []Action
-	err := r.db.Model(&Action{}).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").Find(&a).Error
-	if err != nil {
-		return nil, err
-	}
-	m := UnmarshalArrayAction(a)
-	return m, nil
-}
+// func (r *ActionRepo) ReadAll() ([]models.Action, error) {
+// 	var a []Action
+// 	err := r.db.Model(&Action{}).Preload("HostsRef").Preload("TriggersRef").Preload("TagsRef").Preload("GroupsRef").Find(&a).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	m := UnmarshalArrayAction(a)
+// 	return m, nil
+// }
 
-func (r *ActionRepo) Update(name string, data map[string]interface{}) (*models.Action, error) {
-	actionID, err := r.GetID(name)
-	if err != nil {
+func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, error) {
+	uAction := MarshalAction(*d)
+	if uid, err := r.GetID(name); err != nil {
 		return nil, err
+	} else {
+		uAction.ID = uid
 	}
-	if val, ok := data["hosts"].([]interface{}); ok {
-		for _, service := range val {
-			ms := models.Service{}
-			ms.FromJson(service.(map[string]interface{}))
-			id, err := r.GetHostID(ms.HostName)
+	if uAction.Triggers != nil {
+		if err := r.getDB().Model(&uAction).Association("TriggersRef").Replace(uAction.TriggersRef); err != nil {
+			return nil, err
+		}
+	}
+	if uAction.Groups != nil {
+		if err := r.getDB().Model(&uAction).Association("GroupsRef").Replace(uAction.GroupsRef); err != nil {
+			return nil, err
+		}
+	}
+	if uAction.Connections != nil {
+		for _, conn := range uAction.Connections {
+			hostID, err := r.GetHostID(conn.Name)
 			if err != nil {
 				return nil, err
 			}
-			ah := ActionsHosts{HostID: id, ActionID: actionID, Port: ms.Port}
+			ah := ActionsHosts{HostID: hostID, ActionID: uAction.ID, Port: conn.Port}
 			err = r.getDB().Clauses(clause.OnConflict{
-				DoUpdates: clause.Assignments(map[string]interface{}{"port": ms.Port}),
+				DoUpdates: clause.Assignments(map[string]interface{}{"port": conn.Port}),
 			}).Model(&ActionsHosts{}).Create(&ah).Error
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	if val, ok := data["triggers"]; ok {
-		switch val.(type) {
-		case []interface{}:
-			break
-		default:
-			return nil, errors.New("triggers not an string array")
-		}
-		actionNames := []string{}
-		for _, in := range val.([]interface{}) {
-			actionNames = append(actionNames, in.(string))
-		}
 
-		actions := []Action{}
-		for _, actionName := range actionNames {
-			triggerID, err := r.GetID(actionName)
-			if err != nil {
-				return nil, err
-			}
-			actions = append(actions, Action{DBModel: DBModel{ID: triggerID}})
-		}
-		err = r.getDB().Model(&Action{DBModel: DBModel{ID: actionID}}).Omit("TriggersRef.*").Association("TriggersRef").Replace(&actions)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if val, ok := data["tags"]; ok {
-		switch val.(type) {
-		case []interface{}:
-			break
-		default:
-			return nil, errors.New("tags not an string array")
-		}
-		tagNames := []string{}
-		for _, in := range val.([]interface{}) {
-			tagNames = append(tagNames, in.(string))
-		}
-
-		tags := []Tag{}
-		for _, tagName := range tagNames {
-			tagID, err := r.GetTagID(tagName)
-			if err != nil {
-				return nil, err
-			}
-			tags = append(tags, Tag{DBModel: DBModel{ID: tagID}})
-		}
-		err = r.getDB().Model(&Action{DBModel: DBModel{ID: actionID}}).Omit("TagsRef.*").Association("TagsRef").Replace(&tags)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if val, ok := data["groups"]; ok {
-		switch val.(type) {
-		case []interface{}:
-			break
-		default:
-			return nil, errors.New("groups not an string array")
-		}
-		groupNames := []string{}
-		for _, in := range val.([]interface{}) {
-			groupNames = append(groupNames, in.(string))
-		}
-
-		groups := []Group{}
-		for _, groupName := range groupNames {
-			groupID, err := r.GetTagID(groupName)
-			if err != nil {
-				return nil, err
-			}
-			groups = append(groups, Group{DBModel: DBModel{ID: groupID}})
-		}
-		err = r.getDB().Model(&Action{DBModel: DBModel{ID: actionID}}).Omit("GroupsRef.*").Association("GroupsRef").Replace(&groups)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if val, ok := data["variables"]; ok {
-		b, err := json.Marshal(val)
-		if err != nil {
-			return nil, err
-		}
-		data["variables"] = b
-	}
-	delete(data, "hosts")
-	delete(data, "triggers")
-	delete(data, "tags")
-	delete(data, "groups")
-
-	err = r.db.Model(&Action{DBModel: DBModel{ID: actionID}}).Updates(data).Error
-	if err != nil {
+	if err := r.getDB().Omit("AllowsRef.*").Omit("UsersRef.*").Updates(&uAction).Error; err != nil {
 		return nil, err
 	}
-	new, err := r.ReadByName(name)
-	if err != nil {
-		return nil, err
-	}
-	return new, nil
+	return r.ReadByName(name)
 }
 
 func MarshalAction(a models.Action) Action {
@@ -378,26 +331,31 @@ func MarshalAction(a models.Action) Action {
 
 func UnmarshalAction(a Action) models.Action {
 	v := map[string]interface{}{}
-	err := json.Unmarshal(a.Variables.MarshalJSON())
-	if err != nil {
-		fmt.Println(err.Error())
+	if a.Variables.String() != "null" {
+		err := json.Unmarshal(a.Variables.MarshalJSON())
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 	if len(a.Tags) == 0 {
 		a.Tags = []string{}
 	}
+
 	return models.Action{
-		Name:      a.Name,
-		Script:    a.Script,
+		Name:      utils.PtrDefault(a.Name),
+		Script:    utils.PtrDefault(a.Script),
 		Triggers:  a.Triggers,
 		Tags:      a.Tags,
 		Variables: v,
+		Groups:    a.Groups,
+		//Hosts: a.Connections,
 	}
 }
 
 func ReduceExtended(m *models.ActionExt) *models.Action {
 	triggers := []string{}
 	for _, t := range m.Triggers {
-		triggers = append(triggers, t.Name)
+		triggers = append(triggers, *t.Name)
 	}
 	services := []models.Service{}
 	for _, c := range m.Hosts {
