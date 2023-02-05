@@ -151,10 +151,6 @@ func (s *ActionService) run(r *models.ActionExt) error {
 			if err != nil {
 				execLog.Error = err.Error()
 			}
-
-			// if err != nil {
-			// 		//return err
-			// }
 		}
 	}
 	execLog.SetEndTime()
