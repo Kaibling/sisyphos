@@ -1,0 +1,78 @@
+{
+package peg
+// part of the initializer code block omitted for brevity
+
+// var ops = map[string]func(int, int) int {
+//     "+": func(l, r int) int {
+//         return l + r
+//     },
+//     "-": func(l, r int) int {
+//         return l - r
+//     },
+//     "*": func(l, r int) int {
+//         return l * r
+//     },
+//     "/": func(l, r int) int {
+//         return l / r
+//     },
+// }
+// 
+ func toIfaceSlice(v interface{}) []interface{} {
+     if v == nil {
+         return nil
+     }
+     return v.([]interface{})
+ }
+func toStrSlice(v interface{}) []string {
+	if v == nil {
+		return nil
+	}
+	res := []string{}
+	for _, s := range v.([]interface{}) {
+
+		res = append(res, toString(s))
+	}
+	return res
+}
+
+func toString(i interface{}) string {
+	switch v:= i.(type) {
+	case string:
+		return v
+	case []uint8:
+		return string(v)
+
+	default:
+		fmt.Println("oh no")
+		return ""
+	}
+}
+// 
+// func eval(first, rest interface{}) int {
+//     l := first.(int)
+//     restSl := toIfaceSlice(rest)
+//     for _, v := range restSl {
+//         restExpr := toIfaceSlice(v)
+//         r := restExpr[3].(int)
+//         op := restExpr[1].(string)
+//         l = ops[op](l, r)
+//     }
+//     return l
+// }
+}
+
+
+Input = t:terms* {
+   dd := toStrSlice(t)
+    return strings.Join(dd," and "),nil
+}
+
+terms = _ a:field ":" b:field  _  {
+astr := strings.Join(toStrSlice(a.([]interface{})),"")
+bstr := strings.Join(toStrSlice(b.([]interface{})),"")
+	return fmt.Sprintf("`%s` = '%s'",astr , bstr), nil
+      }
+
+field = [a-zA-Z0-0]+
+
+_ "whitespace" = [ \n\t\r]*
