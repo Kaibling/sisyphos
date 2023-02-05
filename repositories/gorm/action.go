@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"sisyphos/lib/utils"
 	"sisyphos/models"
 
 	"gorm.io/datatypes"
@@ -50,6 +49,17 @@ func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 		groups = append(groups, Group{DBModel: DBModel{ID: gid}})
 	}
 	a.GroupsRef = groups
+
+	tags := []Tag{}
+	for _, t := range a.Tags {
+		tagRepo := NewTagRepo(tx)
+		tid, err := tagRepo.GetID(t)
+		if err != nil {
+			return err
+		}
+		tags = append(tags, Tag{DBModel: DBModel{ID: tid}})
+	}
+	a.TagsRef = tags
 	return
 }
 
@@ -99,7 +109,6 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 	resp := []models.Action{}
 	for _, a := range actions {
 		action := MarshalAction(a)
-		utils.PrettyJSON(action)
 		err := r.getDB().Omit("HostsRef.*").Omit("TriggersRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
 			return nil, err
@@ -373,11 +382,13 @@ func UnmarshalAction(a Action) models.Action {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	if len(a.Tags) == 0 {
+		a.Tags = []string{}
+	}
 	return models.Action{
-		Name:     a.Name,
-		Script:   a.Script,
-		Triggers: a.Triggers,
-		// Hosts:     services,
+		Name:      a.Name,
+		Script:    a.Script,
+		Triggers:  a.Triggers,
 		Tags:      a.Tags,
 		Variables: v,
 	}
@@ -391,6 +402,9 @@ func ReduceExtended(m *models.ActionExtendedv3) *models.Action {
 	services := []models.Service{}
 	for _, c := range m.Hosts {
 		services = append(services, models.Service{HostName: c.Name, Port: c.Port})
+	}
+	if len(m.Tags) == 0 {
+		m.Tags = []string{}
 	}
 	return &models.Action{
 		Name:      m.Name,
@@ -418,6 +432,7 @@ func UnmarshalActionExtendedv3(a Action) models.ActionExtendedv3 {
 		Groups:    a.Groups,
 		Triggers:  UnmarshalArrayActionExtendedv3(a.TriggersRef),
 		Hosts:     a.Connections,
+		Tags:      a.Tags,
 		Variables: v,
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"sisyphos/lib/config"
 	"sisyphos/lib/metadata"
 	"sisyphos/lib/ssh"
-	"sisyphos/lib/utils"
 	"sisyphos/models"
 )
 
@@ -109,7 +108,6 @@ func (s *ActionService) InitRun(r *models.ActionExtendedv3) ([]models.Run, error
 
 func (s *ActionService) run(r *models.ActionExtendedv3) error {
 	fmt.Printf("Start run %s\n", r.Name)
-	utils.PrettyJSON(r)
 	execLog := models.NewRun(r.Name,
 		s.runLogService.repo.GetUsername(),
 		s.runLogService.repo.GetRequestID())
