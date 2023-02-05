@@ -1,6 +1,7 @@
 package gormrepo
 
 import (
+	"errors"
 	"fmt"
 
 	"sisyphos/lib/utils"
@@ -136,8 +137,10 @@ func (r *GroupRepo) Update(name any, d *models.Group) (*models.Group, error) {
 
 func (r *GroupRepo) GetID(name any) (string, error) {
 	var a Group
-	err := r.db.Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).First(&a).Error
-	if err != nil {
+	if err := r.db.Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).First(&a).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("GetID: id of '%s' not found", name)
+		}
 		return "", err
 	}
 	return a.ID, nil

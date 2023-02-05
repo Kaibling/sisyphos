@@ -1,6 +1,8 @@
 package gormrepo
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"sisyphos/lib/utils"
@@ -61,8 +63,10 @@ func (r *TokenRepo) ReadByToken(token interface{}) (*models.Token, error) {
 
 func (r *TokenRepo) GetID(token string) (string, error) {
 	var t Token
-	err := r.db.Model(&Token{}).Where(&Token{Token: token}).Find(&t).Error
-	if err != nil {
+	if err := r.db.Model(&Token{}).Where(&Token{Token: token}).First(&t).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("GetID: id of '%s' not found", token)
+		}
 		return "", err
 	}
 	return t.ID, nil

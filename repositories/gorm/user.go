@@ -96,8 +96,10 @@ func (r *UserRepo) ReadByName(name interface{}) (*models.User, error) {
 
 func (r *UserRepo) GetID(name string) (string, error) {
 	var a User
-	err := r.db.Model(&User{}).Where(&User{Name: name}).Find(&a).Error
-	if err != nil {
+	if err := r.db.Model(&User{}).Where(&User{Name: name}).First(&a).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("GetID: id of '%s' not found", name)
+		}
 		return "", err
 	}
 	return a.ID, nil

@@ -1,6 +1,8 @@
 package gormrepo
 
 import (
+	"errors"
+	"fmt"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -8,8 +10,8 @@ import (
 
 type Tag struct {
 	DBModel
-	Name string
-	Text string
+	Name        string
+	Description string
 }
 
 type TagRepo struct {
@@ -25,18 +27,17 @@ func (r *TagRepo) getDB() *gorm.DB {
 	return d
 }
 
-func (r *TagRepo) Create(actions []models.Tag) ([]models.Tag, error) {
+func (r *TagRepo) Create(tags []models.Tag) ([]models.Tag, error) {
 	resp := []models.Tag{}
-	for _, a := range actions {
-		action := MarshalTag(a)
-
-		err := r.getDB().Create(&action).Error
+	for _, a := range tags {
+		tag := MarshalTag(a)
+		err := r.getDB().Create(&tag).Error
 		if err != nil {
 			return nil, err
 		}
 		// update assosiation table
 
-		newTag, err := r.ReadByName(action.Name)
+		newTag, err := r.ReadByName(tag.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +48,7 @@ func (r *TagRepo) Create(actions []models.Tag) ([]models.Tag, error) {
 
 func (r *TagRepo) ReadByName(name interface{}) (*models.Tag, error) {
 	var a Tag
-	err := r.db.Model(&Tag{Name: name.(string)}).First(&a).Error
+	err := r.db.Model(&Tag{}).Where(&Tag{Name: name.(string)}).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +58,13 @@ func (r *TagRepo) ReadByName(name interface{}) (*models.Tag, error) {
 
 func (r *TagRepo) GetID(name string) (string, error) {
 	var a Tag
-	err := r.db.Model(&Tag{}).Where(&Tag{Name: name}).Find(&a).Error
-	if err != nil {
+	if err := r.db.Model(&Tag{}).Where(&Tag{Name: name}).First(&a).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("GetID: id of '%s' not found", name)
+		}
 		return "", err
 	}
-	return a.Name, nil
+	return a.ID, nil
 }
 
 func (r *TagRepo) ReadAll() ([]models.Tag, error) {
@@ -76,32 +79,32 @@ func (r *TagRepo) ReadAll() ([]models.Tag, error) {
 
 func MarshalTag(a models.Tag) Tag {
 	return Tag{
-		Name: a.Name,
-		Text: a.Text,
+		Name:        a.Name,
+		Description: a.Description,
 	}
 }
 
 func UnmarshalTag(a Tag) models.Tag {
 	return models.Tag{
-		Name: a.Name,
-		Text: a.Text,
+		Name:        a.Name,
+		Description: a.Description,
 	}
 }
 
 func MarshalArrayTag(m []models.Tag) []Tag {
-	actions := []Tag{}
+	tags := []Tag{}
 	for _, a := range m {
-		actions = append(actions, MarshalTag(a))
+		tags = append(tags, MarshalTag(a))
 	}
-	return actions
+	return tags
 }
 
 func UnmarshalArrayTag(a []Tag) []models.Tag {
-	actions := []models.Tag{}
+	tags := []models.Tag{}
 	for _, m := range a {
-		actions = append(actions, UnmarshalTag(m))
+		tags = append(tags, UnmarshalTag(m))
 	}
-	return actions
+	return tags
 }
 
 type TagDBMigrator struct {

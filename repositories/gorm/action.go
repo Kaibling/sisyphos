@@ -171,7 +171,7 @@ func (r *ActionRepo) GetID(name string) (string, error) {
 	var a Action
 	if err := r.db.Model(&Action{}).Where(&Action{Name: name}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", fmt.Errorf("BeforeSave: id of '%s' not found", name)
+			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
 		return "", err
 	}

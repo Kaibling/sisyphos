@@ -1,6 +1,8 @@
 package gormrepo
 
 import (
+	"errors"
+	"fmt"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -11,16 +13,30 @@ type Host struct {
 	Name    string
 	SSHKey  string
 	Address string
-	TagsRef []Tag    `gorm:"many2many:hosts_tags;"`
+	TagsRef []Tag    `gorm:"many2many:hosts_hosts;"`
 	Tags    []string `gorm:"-"`
 }
 
-func (h *Host) AfterFind(tx *gorm.DB) (err error) {
-	tags := []string{}
-	for _, t := range h.TagsRef {
-		tags = append(tags, t.Name)
+func (h *Host) BeforeSave(tx *gorm.DB) (err error) {
+	hosts := []Tag{}
+	for _, t := range h.Tags {
+		hostRepo := NewTagRepo(tx)
+		tid, err := hostRepo.GetID(t)
+		if err != nil {
+			return err
+		}
+		hosts = append(hosts, Tag{DBModel: DBModel{ID: tid}})
 	}
-	h.Tags = tags
+	h.TagsRef = hosts
+	return
+}
+
+func (h *Host) AfterFind(tx *gorm.DB) (err error) {
+	hosts := []string{}
+	for _, t := range h.TagsRef {
+		hosts = append(hosts, t.Name)
+	}
+	h.Tags = hosts
 	return
 }
 
@@ -37,18 +53,18 @@ func (r *HostRepo) getDB() *gorm.DB {
 	return d
 }
 
-func (r *HostRepo) Create(actions []models.Host) ([]models.Host, error) {
+func (r *HostRepo) Create(hosts []models.Host) ([]models.Host, error) {
 	resp := []models.Host{}
-	for _, a := range actions {
-		action := MarshalHost(a)
+	for _, a := range hosts {
+		host := MarshalHost(a)
 
-		err := r.getDB().Create(&action).Error
+		err := r.getDB().Omit("TagsRef.*").Create(&host).Error
 		if err != nil {
 			return nil, err
 		}
 		// update assosiation table
 
-		newHost, err := r.ReadByName(action.Name)
+		newHost, err := r.ReadByName(host.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +75,7 @@ func (r *HostRepo) Create(actions []models.Host) ([]models.Host, error) {
 
 func (r *HostRepo) ReadByName(name interface{}) (*models.Host, error) {
 	var a Host
-	err := r.db.Model(&Host{Name: name.(string)}).Preload("TagsRef").First(&a).Error
+	err := r.getDB().Model(&Host{}).Where(&Host{Name: name.(string)}).Preload("TagsRef").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +85,10 @@ func (r *HostRepo) ReadByName(name interface{}) (*models.Host, error) {
 
 func (r *HostRepo) GetID(name string) (string, error) {
 	var a Host
-	err := r.db.Model(&Host{}).Where(&Host{Name: name}).Find(&a).Error
-	if err != nil {
+	if err := r.getDB().Model(&Host{}).Where(&Host{Name: name}).First(&a).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("GetID: id of '%s' not found", name)
+		}
 		return "", err
 	}
 	return a.ID, nil
@@ -91,31 +109,36 @@ func MarshalHost(a models.Host) Host {
 		Name:    a.Name,
 		SSHKey:  a.SSHKey,
 		Address: a.Address,
+		Tags:    a.Tags,
 	}
 }
 
 func UnmarshalHost(a Host) models.Host {
+	if len(a.Tags) == 0 {
+		a.Tags = []string{}
+	}
 	return models.Host{
 		Name:    a.Name,
 		SSHKey:  a.SSHKey,
 		Address: a.Address,
+		Tags:    a.Tags,
 	}
 }
 
 func MarshalArrayHost(m []models.Host) []Host {
-	actions := []Host{}
+	hosts := []Host{}
 	for _, a := range m {
-		actions = append(actions, MarshalHost(a))
+		hosts = append(hosts, MarshalHost(a))
 	}
-	return actions
+	return hosts
 }
 
 func UnmarshalArrayHost(a []Host) []models.Host {
-	actions := []models.Host{}
+	hosts := []models.Host{}
 	for _, m := range a {
-		actions = append(actions, UnmarshalHost(m))
+		hosts = append(hosts, UnmarshalHost(m))
 	}
-	return actions
+	return hosts
 }
 
 type HostDBMigrator struct {

@@ -42,7 +42,7 @@ func main() {
 	r.Mount("/", api.Routes())
 
 	displayRoutes(r)
-	fmt.Println("listining on :3000")
+	fmt.Println("listening on :3000")
 	err = http.ListenAndServe(":3000", r)
 	if err != nil {
 		fmt.Println(err.Error())
