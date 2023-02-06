@@ -1,17 +1,11 @@
 package services
 
-import "fmt"
+import (
+	"sisyphos/models"
+)
 
 type sshlib interface {
-	Execute(hoststring, uersname, password, cmd string) (string, error)
-}
-
-type SSHConfig struct {
-	Address  string
-	Port     string
-	Username string
-	Password string
-	Key      string
+	Execute(m models.SSHConfig, cmd string) (string, error)
 }
 
 type SSHService struct {
@@ -22,7 +16,6 @@ func NewSSHService(l sshlib) *SSHService {
 	return &SSHService{l}
 }
 
-func (s *SSHService) RunCommand(cfg SSHConfig, cmd string) (string, error) {
-	fmt.Println(cmd)
-	return s.l.Execute(cfg.Address+":"+cfg.Port, cfg.Username, cfg.Password, cmd)
+func (s *SSHService) RunCommand(cfg models.SSHConfig, cmd string) (string, error) {
+	return s.l.Execute(cfg, cmd)
 }

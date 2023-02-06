@@ -8,6 +8,7 @@ import (
 	"sisyphos/lib/config"
 	"sisyphos/lib/metadata"
 	"sisyphos/lib/ssh"
+	"sisyphos/lib/utils"
 	"sisyphos/models"
 )
 
@@ -110,7 +111,7 @@ func (s *ActionService) run(r *models.ActionExt) error {
 		s.runLogService.repo.GetRequestID())
 
 	for _, tr := range r.Triggers {
-		t, err := s.ReadExt(tr.Name)
+		t, err := s.ReadExt(utils.PtrRead(tr.Name))
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
@@ -124,27 +125,28 @@ func (s *ActionService) run(r *models.ActionExt) error {
 		s.run(t)
 		// TODO cancel if error ???
 	}
-	if *r.Script != "" {
-		fmt.Printf("run %s has script %s\n", r.Name, r.Script)
+	if utils.PtrRead(r.Script) != "" {
+		fmt.Printf("run %s has script %s\n", *r.Name, utils.PtrRead(r.Script))
 		if len(r.Hosts) == 0 {
-			e := fmt.Errorf("no hosts for '%s'", r.Name)
+			e := fmt.Errorf("no hosts for '%s'", utils.PtrRead(r.Name))
 			execLog.Error = e.Error()
 			execLog.SetEndTime()
 			s.runLogService.Create(*execLog)
 			return e
 		}
 		for _, connection := range r.Hosts {
-			fmt.Printf("try ssh run %s on %s\n", r.Name, connection.Name)
+			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), connection.Name)
 			sshc := ssh.NewSSHConnector()
 			sshService := NewSSHService(sshc)
 
-			cfg := SSHConfig{
-				Address:  connection.Address,
-				Port:     connection.Port,
-				Username: r.Variables["ssh_user"].(string),
-				Password: r.Variables["ssh_password"].(string),
+			cfg := models.SSHConfig{
+				Address:    utils.PtrRead(connection.Address),
+				Port:       utils.PtrRead(connection.Port),
+				Username:   utils.PtrRead(connection.Username), //r.Variables["ssh_user"].(string),
+				Password:   utils.PtrRead(connection.Password), //r.Variables["ssh_password"].(string),
+				PrivateKey: utils.PtrRead(connection.SSHKey),
 			}
-			cmd := replaceVariables(*r.Script, r.Variables)
+			cmd := replaceVariables(utils.PtrRead(r.Script), r.Variables)
 			output, err := sshService.RunCommand(cfg, cmd)
 			// TODO cancel if error ???
 			execLog.Output = output

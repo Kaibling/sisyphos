@@ -51,7 +51,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, env.SetError(err))
 		return
 	}
-	var m map[string]interface{}
+	var m *models.Host
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
@@ -87,4 +87,15 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
+}
+
+func testConnection(w http.ResponseWriter, r *http.Request) {
+	env, hostService := prep(r)
+	name := chi.URLParam(r, "name")
+	err := hostService.TestConnection(name)
+	if err != nil {
+		render.Render(w, r, env.SetError(err))
+		return
+	}
+	render.Render(w, r, env.SetResponse("ok"))
 }

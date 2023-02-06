@@ -2,7 +2,9 @@ package ssh
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"sisyphos/models"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -13,20 +15,38 @@ func NewSSHConnector() *SSHConnector {
 	return &SSHConnector{}
 }
 
-func (s *SSHConnector) Execute(connectionString, user, password, command string) (string, error) {
+func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, error) {
 	// ssh config
 	// hostKeyCallback, err := knownhosts.New(".sshwalk/known_hosts")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
-	fmt.Printf("trying cmd: %s on '%s'\n", command, connectionString)
+	connectionString := fmt.Sprintf("%s:%d", cfg.Address, cfg.Port)
+	authMethods := []ssh.AuthMethod{}
+
+	if cfg.Password != "" {
+		fmt.Println("try password")
+		authMethods = append(authMethods, ssh.Password(cfg.Password))
+	}
+
+	if cfg.PrivateKey != "" {
+		fmt.Println("try ssh key")
+		privKey := []byte(cfg.PrivateKey)
+		signer, err := ssh.ParsePrivateKey(privKey)
+		if err != nil {
+			return "", err
+		}
+		authMethods = append(authMethods, ssh.PublicKeys(signer))
+	}
+	if len(authMethods) == 0 {
+		return "", errors.New("not authentication methods available")
+	}
 	config := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
+		User:            cfg.Username,
+		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // hostKeyCallback,
 	}
+	fmt.Printf("trying cmd: %s on '%s'\n", command, connectionString)
 	// connect to ssh server
 	conn, err := ssh.Dial("tcp", connectionString, config)
 	if err != nil {

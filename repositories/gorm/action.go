@@ -88,9 +88,9 @@ func (a *Action) AfterFind(tx *gorm.DB) (err error) {
 type ActionsHosts struct {
 	HostID   string `gorm:"type:varchar(191);primaryKey"`
 	ActionID string `gorm:"type:varchar(191);primaryKey"`
-	Port     string
-	Order    int
-	Name     string
+	//Port     string
+	Order int
+	Name  string
 }
 
 type ActionRepo struct {
@@ -124,7 +124,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 		}
 		for _, c := range action.Connections {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(c.Name)
+			hostID, err := hostRepo.GetID(utils.PtrRead(c.Name))
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -132,7 +132,6 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 			newActionHost := ActionsHosts{
 				HostID:   hostID,
 				ActionID: action.ID,
-				Port:     c.Port,
 				Order:    c.Order,
 			}
 
@@ -175,7 +174,7 @@ func (r *ActionRepo) ReadExt(name interface{}) (*models.ActionExt, error) {
 		for _, rel := range ah {
 			if rel.HostID == host.ID {
 				mh := UnmarshalHost(host)
-				conns = append(conns, models.Connection{Host: mh, Port: rel.Port, Order: rel.Order})
+				conns = append(conns, models.Connection{Host: mh, Order: rel.Order})
 			}
 		}
 	}
@@ -200,7 +199,7 @@ func (r *ActionRepo) ReadExtIDs(ids []interface{}) ([]models.ActionExt, error) {
 			for _, rel := range ah {
 				if rel.HostID == host.ID {
 					mh := UnmarshalHost(host)
-					conns = append(conns, models.Connection{Host: mh, Port: rel.Port, Order: rel.Order})
+					conns = append(conns, models.Connection{Host: mh, Order: rel.Order})
 				}
 			}
 		}
@@ -270,14 +269,14 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	if uAction.Connections != nil {
 		for _, conn := range uAction.Connections {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(conn.Name)
+			hostID, err := hostRepo.GetID(*conn.Name)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
 			}
-			ah := ActionsHosts{HostID: hostID, ActionID: uAction.ID, Port: conn.Port}
+			ah := ActionsHosts{HostID: hostID, ActionID: uAction.ID, Order: conn.Order}
 			err = tx.Clauses(clause.OnConflict{
-				DoUpdates: clause.Assignments(map[string]interface{}{"port": conn.Port}),
+				DoUpdates: clause.Assignments(map[string]interface{}{"order": conn.Order}),
 			}).Model(&ActionsHosts{}).Create(&ah).Error
 			if err != nil {
 				tx.Rollback()
@@ -301,7 +300,7 @@ func MarshalAction(a models.Action) Action {
 	}
 	conns := []models.Connection{}
 	for _, h := range a.Hosts {
-		conns = append(conns, models.Connection{Host: models.Host{Name: h.HostName}, Order: h.Order, Port: h.Port})
+		conns = append(conns, models.Connection{Host: models.Host{Name: &h.HostName}, Order: h.Order})
 	}
 
 	return Action{
@@ -328,8 +327,8 @@ func UnmarshalAction(a Action) models.Action {
 	}
 
 	return models.Action{
-		Name:      utils.PtrDefault(a.Name),
-		Script:    utils.PtrDefault(a.Script),
+		Name:      a.Name,
+		Script:    a.Script,
 		Triggers:  a.Triggers,
 		Tags:      a.Tags,
 		Variables: v,
@@ -345,7 +344,7 @@ func ReduceExtended(m *models.ActionExt) *models.Action {
 	}
 	services := []models.Service{}
 	for _, c := range m.Hosts {
-		services = append(services, models.Service{HostName: c.Name, Port: c.Port})
+		services = append(services, models.Service{HostName: *c.Name, Order: c.Order})
 	}
 	if len(m.Tags) == 0 {
 		m.Tags = []string{}

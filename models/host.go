@@ -6,20 +6,21 @@ import (
 )
 
 type Host struct {
-	Name    string   `json:"name"`
-	SSHKey  string   `json:"ssh_key"`
-	Address string   `json:"address"`
-	Tags    []string `json:"tags"`
+	Name     *string  `json:"name"`
+	Username *string  `json:"username"`
+	Password *string  `json:"password"`
+	SSHKey   *string  `json:"ssh_key"`
+	Address  *string  `json:"address"`
+	Port     *int     `json:"port"`
+	Tags     []string `json:"tags"`
 }
 type Connection struct {
 	Host
-	Port  string `json:"port"`
-	Order int    `json:"order"`
+	Order int `json:"order"`
 }
 
 type Service struct {
 	HostName string `json:"name"`
-	Port     string `json:"port"`
 	Order    int    `json:"order,omitempty"`
 }
 

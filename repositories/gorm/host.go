@@ -3,6 +3,7 @@ package gormrepo
 import (
 	"errors"
 	"fmt"
+	"sisyphos/lib/utils"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -10,11 +11,14 @@ import (
 
 type Host struct {
 	DBModel
-	Name    string
-	SSHKey  string
-	Address string
-	TagsRef []Tag    `gorm:"many2many:hosts_hosts;"`
-	Tags    []string `gorm:"-"`
+	Name     *string `gorm:"index:idx_name,unique"`
+	User     *string
+	Password *string
+	SSHKey   *string
+	Address  *string `gorm:"index:idx_name,unique"`
+	Port     *int
+	TagsRef  []Tag    `gorm:"many2many:hosts_hosts;"`
+	Tags     []string `gorm:"-"`
 }
 
 func (h *Host) BeforeSave(tx *gorm.DB) (err error) {
@@ -62,9 +66,7 @@ func (r *HostRepo) Create(hosts []models.Host) ([]models.Host, error) {
 		if err != nil {
 			return nil, err
 		}
-		// update assosiation table
-
-		newHost, err := r.ReadByName(host.Name)
+		newHost, err := r.ReadByName(utils.PtrRead(host.Name))
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +77,7 @@ func (r *HostRepo) Create(hosts []models.Host) ([]models.Host, error) {
 
 func (r *HostRepo) ReadByName(name interface{}) (*models.Host, error) {
 	var a Host
-	err := r.getDB().Model(&Host{}).Where(&Host{Name: name.(string)}).Preload("TagsRef").First(&a).Error
+	err := r.getDB().Model(&Host{}).Where(&Host{Name: utils.ToPointer(name.(string))}).Preload("TagsRef").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +85,28 @@ func (r *HostRepo) ReadByName(name interface{}) (*models.Host, error) {
 	return &m, nil
 }
 
-func (r *HostRepo) GetID(name string) (string, error) {
+func (r *HostRepo) Update(name any, d *models.Host) (*models.Host, error) {
+	uHost := MarshalHost(*d)
+	if hid, err := r.GetID(name); err != nil {
+		return nil, err
+	} else {
+		uHost.ID = hid
+	}
+	if uHost.Tags != nil {
+		if err := r.getDB().Model(&uHost).Association("TagsRef").Replace(uHost.TagsRef); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := r.getDB().Omit("TagsRef.*").Updates(&uHost).Error; err != nil {
+		return nil, err
+	}
+	return r.ReadByName(name)
+}
+
+func (r *HostRepo) GetID(name any) (string, error) {
 	var a Host
-	if err := r.getDB().Model(&Host{}).Where(&Host{Name: name}).First(&a).Error; err != nil {
+	if err := r.getDB().Model(&Host{}).Where(&Host{Name: utils.ToPointer(name.(string))}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -106,10 +127,13 @@ func (r *HostRepo) ReadAll() ([]models.Host, error) {
 
 func MarshalHost(a models.Host) Host {
 	return Host{
-		Name:    a.Name,
-		SSHKey:  a.SSHKey,
-		Address: a.Address,
-		Tags:    a.Tags,
+		Name:     a.Name,
+		User:     a.Username,
+		Password: a.Password,
+		SSHKey:   a.SSHKey,
+		Address:  a.Address,
+		Port:     a.Port,
+		Tags:     a.Tags,
 	}
 }
 
@@ -118,10 +142,13 @@ func UnmarshalHost(a Host) models.Host {
 		a.Tags = []string{}
 	}
 	return models.Host{
-		Name:    a.Name,
-		SSHKey:  a.SSHKey,
-		Address: a.Address,
-		Tags:    a.Tags,
+		Name:     a.Name,
+		Username: a.User,
+		Password: a.Password,
+		SSHKey:   a.SSHKey,
+		Address:  a.Address,
+		Port:     a.Port,
+		Tags:     a.Tags,
 	}
 }
 
