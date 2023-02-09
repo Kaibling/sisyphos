@@ -15,6 +15,7 @@ type Host struct {
 	User     *string
 	Password *string
 	SSHKey   *string
+	KnownKey *string
 	Address  *string `gorm:"index:idx_name,unique"`
 	Port     *int
 	TagsRef  []Tag    `gorm:"many2many:hosts_hosts;"`
@@ -57,10 +58,10 @@ func (r *HostRepo) getDB() *gorm.DB {
 	return d
 }
 
-func (r *HostRepo) Create(hosts []models.Host) ([]models.Host, error) {
+func (r *HostRepo) Create(hosts []*models.Host) ([]models.Host, error) {
 	resp := []models.Host{}
 	for _, a := range hosts {
-		host := MarshalHost(a)
+		host := MarshalHost(*a)
 
 		err := r.getDB().Omit("TagsRef.*").Create(&host).Error
 		if err != nil {
@@ -131,6 +132,7 @@ func MarshalHost(a models.Host) Host {
 		User:     a.Username,
 		Password: a.Password,
 		SSHKey:   a.SSHKey,
+		KnownKey: a.KnownKey,
 		Address:  a.Address,
 		Port:     a.Port,
 		Tags:     a.Tags,
@@ -146,6 +148,7 @@ func UnmarshalHost(a Host) models.Host {
 		Username: a.User,
 		Password: a.Password,
 		SSHKey:   a.SSHKey,
+		KnownKey: a.KnownKey,
 		Address:  a.Address,
 		Port:     a.Port,
 		Tags:     a.Tags,

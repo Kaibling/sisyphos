@@ -21,8 +21,8 @@ func NewRunService(repo runRepo) *RunService {
 	return &RunService{repo: repo}
 }
 
-func (s *RunService) Create(model models.Run) ([]models.Run, error) {
-	return s.repo.Create([]models.Run{model})
+func (s *RunService) Create(model *models.Run) ([]models.Run, error) {
+	return s.repo.Create([]models.Run{*model})
 }
 
 func (s *RunService) ReadByRunID(runID interface{}) (*models.Run, error) {

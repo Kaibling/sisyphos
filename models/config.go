@@ -8,6 +8,7 @@ type SSHConfig struct {
 	Username   string
 	Password   string
 	PrivateKey string
+	KnownKey   string
 }
 
 func (s *SSHConfig) Validate() error {

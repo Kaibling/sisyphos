@@ -2,9 +2,12 @@ package ssh
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"sisyphos/models"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -16,11 +19,6 @@ func NewSSHConnector() *SSHConnector {
 }
 
 func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, error) {
-	// ssh config
-	// hostKeyCallback, err := knownhosts.New(".sshwalk/known_hosts")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 	connectionString := fmt.Sprintf("%s:%d", cfg.Address, cfg.Port)
 	authMethods := []ssh.AuthMethod{}
 
@@ -41,10 +39,12 @@ func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, er
 	if len(authMethods) == 0 {
 		return "", errors.New("not authentication methods available")
 	}
+	kh := KnownHosts{key: cfg.KnownKey}
 	config := &ssh.ClientConfig{
-		User:            cfg.Username,
-		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // hostKeyCallback,
+		User: cfg.Username,
+		Auth: authMethods,
+		//HostKeyCallback: ssh.InsecureIgnoreHostKey(), // hostKeyCallback,
+		HostKeyCallback: kh.ValidateHostKey,
 	}
 	fmt.Printf("trying cmd: %s on '%s'\n", command, connectionString)
 	// connect to ssh server
@@ -64,4 +64,28 @@ func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, er
 		return "", err
 	}
 	return buff.String(), nil
+}
+
+func (s *SSHConnector) ReadHostKey(host string, port int) (string, error) {
+	kh := KnownHosts{}
+	sshConfig := &ssh.ClientConfig{HostKeyCallback: kh.ReadHostKey}
+	ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), sshConfig)
+	return kh.key, nil
+}
+
+type KnownHosts struct {
+	key string
+}
+
+func (kh *KnownHosts) ValidateHostKey(dialAddr string, addr net.Addr, key ssh.PublicKey) error {
+	current := fmt.Sprintf("%s %s %s", strings.Split(dialAddr, ":")[0], key.Type(), base64.StdEncoding.EncodeToString(key.Marshal()))
+	if kh.key != current {
+		return fmt.Errorf("hostkey missmatch: unknown %s", current)
+	}
+	return nil
+}
+
+func (kh *KnownHosts) ReadHostKey(dialAddr string, addr net.Addr, key ssh.PublicKey) error {
+	kh.key = fmt.Sprintf("%s %s %s", strings.Split(dialAddr, ":")[0], key.Type(), base64.StdEncoding.EncodeToString(key.Marshal()))
+	return nil
 }

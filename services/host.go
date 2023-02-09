@@ -8,7 +8,7 @@ import (
 )
 
 type hostRepo interface {
-	Create(hosts []models.Host) ([]models.Host, error)
+	Create(hosts []*models.Host) ([]models.Host, error)
 	ReadByName(name any) (*models.Host, error)
 	Update(name any, d *models.Host) (*models.Host, error)
 	ReadAll() ([]models.Host, error)
@@ -22,7 +22,20 @@ func NewHostService(repo hostRepo) *HostService {
 	return &HostService{repo: repo}
 }
 
-func (s *HostService) Create(models []models.Host) ([]models.Host, error) {
+func (s *HostService) Create(models []*models.Host) ([]models.Host, error) {
+	for _, h := range models {
+		sshcfg := h.ToSSHConfig()
+		if err := sshcfg.Validate(); err != nil {
+			return nil, fmt.Errorf("hostname:'%s':%w", utils.PtrRead(h.Name), err)
+		}
+		sshc := ssh.NewSSHConnector()
+		sshService := NewSSHService(sshc)
+		if hk, err := sshService.ReadHostKey(sshcfg.Address, sshcfg.Port); err == nil {
+			h.KnownKey = &hk
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
 	return s.repo.Create(models)
 }
 
@@ -46,13 +59,7 @@ func (s *HostService) TestConnection(name any) error {
 	sshc := ssh.NewSSHConnector()
 	sshService := NewSSHService(sshc)
 
-	cfg := models.SSHConfig{
-		Address:    utils.PtrRead(h.Address),
-		Port:       utils.PtrRead(h.Port),
-		Username:   utils.PtrRead(h.Username), //r.Variables["ssh_user"].(string),
-		Password:   utils.PtrRead(h.Password), //r.Variables["ssh_password"].(string),
-		PrivateKey: utils.PtrRead(h.SSHKey),
-	}
+	cfg := h.ToSSHConfig()
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
@@ -62,5 +69,6 @@ func (s *HostService) TestConnection(name any) error {
 		return err
 	}
 	fmt.Printf("'%s'", output)
+
 	return nil
 }

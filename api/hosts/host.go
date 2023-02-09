@@ -29,7 +29,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, env.SetError(err))
 		return
 	}
-	var m []models.Host
+	var m []*models.Host
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))

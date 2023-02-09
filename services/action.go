@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"sisyphos/lib/apperrors"
 	"sisyphos/lib/config"
 	"sisyphos/lib/metadata"
 	"sisyphos/lib/ssh"
@@ -46,6 +47,10 @@ func (s *ActionService) Create(models []models.Action) ([]models.Action, error) 
 		if len(models[i].Groups) == 0 {
 			models[i].Groups = []string{defaultGroupName}
 		}
+		if err := models[i].Validate(); err != nil {
+			return nil, err
+		}
+		models[i].Default()
 	}
 	return s.repo.Create(models)
 }
@@ -99,30 +104,42 @@ func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
 	if s.runLogService == nil {
 		return nil, errors.New("no Run service instantiated")
 	}
+	r.Variables["failonerrors"] = utils.PtrRead(r.FailOnErrors)
 	r.Variables = CombineVars(r.Variables, config.Config.GlobalVars)
-	s.run(r)
+	s.run(r, "")
 	return s.runLogService.ReadByReqID()
 }
 
-func (s *ActionService) run(r *models.ActionExt) error {
-	fmt.Printf("Start run %s\n", r.Name)
-	execLog := models.NewRun(*r.Name,
+func (s *ActionService) run(r *models.ActionExt, parentID string) error {
+	fmt.Printf("Start run %s pid:%s\n", utils.PtrRead(r.Name), parentID)
+	execLog := models.NewRun(utils.PtrRead(r.Name),
 		s.runLogService.repo.GetUsername(),
-		s.runLogService.repo.GetRequestID())
+		s.runLogService.repo.GetRequestID(),
+		parentID,
+	)
+	execLog.Status = apperrors.ScriptRunSuccess
 
 	for _, tr := range r.Triggers {
 		t, err := s.ReadExt(utils.PtrRead(tr.Name))
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
-			s.runLogService.Create(*execLog)
+			s.runLogService.Create(execLog)
 			// return err
 		}
-		t.Variables = CombineVars(t.Variables, r.Variables)
+		t.Variables["failonerrors"] = utils.PtrRead(t.FailOnErrors)
+		t.Variables = CombineVars(r.Variables, t.Variables)
 		if len(t.Hosts) == 0 {
 			t.Hosts = r.Hosts
 		}
-		s.run(t)
+		rerr := s.run(t, execLog.RunID)
+		if t.Variables["failonerrors"].(bool) && rerr != nil {
+			e := fmt.Errorf("script '%s' failed: %w", utils.PtrRead(r.Name), err)
+			execLog.Error = e.Error()
+			execLog.SetEndTime()
+			s.runLogService.Create(execLog)
+			return rerr
+		}
 		// TODO cancel if error ???
 	}
 	if utils.PtrRead(r.Script) != "" {
@@ -131,40 +148,53 @@ func (s *ActionService) run(r *models.ActionExt) error {
 			e := fmt.Errorf("no hosts for '%s'", utils.PtrRead(r.Name))
 			execLog.Error = e.Error()
 			execLog.SetEndTime()
-			s.runLogService.Create(*execLog)
-			return e
+			s.runLogService.Create(execLog)
+			//return e
 		}
+
 		for _, connection := range r.Hosts {
-			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), connection.Name)
+			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), utils.PtrRead(connection.Name))
+			hostExecLog := models.NewRun(*r.Name,
+				s.runLogService.repo.GetUsername(),
+				s.runLogService.repo.GetRequestID(),
+				execLog.RequestID)
+			hostExecLog.Host = connection.Host.Name
+
 			sshc := ssh.NewSSHConnector()
 			sshService := NewSSHService(sshc)
+			cfg := connection.ToSSHConfig()
 
-			cfg := models.SSHConfig{
-				Address:    utils.PtrRead(connection.Address),
-				Port:       utils.PtrRead(connection.Port),
-				Username:   utils.PtrRead(connection.Username), //r.Variables["ssh_user"].(string),
-				Password:   utils.PtrRead(connection.Password), //r.Variables["ssh_password"].(string),
-				PrivateKey: utils.PtrRead(connection.SSHKey),
-			}
 			cmd := replaceVariables(utils.PtrRead(r.Script), r.Variables)
-			output, err := sshService.RunCommand(cfg, cmd)
-			// TODO cancel if error ???
-			execLog.Output = output
-			if err != nil {
-				execLog.Error = err.Error()
+			output, serr := sshService.RunCommand(cfg, cmd)
+			if serr != nil {
+				hostExecLog.Error = serr.Error()
+				hostExecLog.Status = apperrors.ScriptRunFailed
+				execLog.Status = apperrors.ScriptRunFailed
+			} else {
+				hostExecLog.Status = apperrors.ScriptRunSuccess
+			}
+			hostExecLog.Output = output
+
+			hostExecLog.SetEndTime()
+			if _, err := s.runLogService.Create(hostExecLog); err != nil {
+				fmt.Println(err.Error())
+			}
+
+			if r.Variables["failonerrors"].(bool) && serr != nil {
+				return serr
 			}
 		}
 	}
 	execLog.SetEndTime()
-	s.runLogService.Create(*execLog)
+	s.runLogService.Create(execLog)
 	return nil
 }
 
-func CombineVars(v1, v2 JSON) JSON {
-	for k, v := range v2 {
-		v1[k] = v
+func CombineVars(base, override JSON) JSON {
+	for k, v := range override {
+		base[k] = v
 	}
-	return v1
+	return base
 }
 
 func replaceVariables(cmd string, variables map[string]interface{}) string {

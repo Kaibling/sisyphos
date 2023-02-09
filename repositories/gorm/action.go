@@ -15,17 +15,18 @@ import (
 
 type Action struct {
 	DBModel
-	Name        *string `gorm:"unique"`
-	Script      *string
-	Triggers    []string            `gorm:"-"`
-	TriggersRef []Action            `gorm:"many2many:action_triggers;"`
-	Groups      []string            `gorm:"-"`
-	GroupsRef   []Group             `gorm:"many2many:groups_actions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Connections []models.Connection `gorm:"-"`
-	HostsRef    []Host              `gorm:"many2many:actions_hosts;"`
-	Variables   datatypes.JSON
-	TagsRef     []Tag    `gorm:"many2many:actions_tags;"`
-	Tags        []string `gorm:"-"`
+	Name         *string             `gorm:"unique"`
+	Triggers     []string            `gorm:"-"`
+	TriggersRef  []Action            `gorm:"many2many:action_triggers;"`
+	Groups       []string            `gorm:"-"`
+	GroupsRef    []Group             `gorm:"many2many:groups_actions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Connections  []models.Connection `gorm:"-"`
+	HostsRef     []Host              `gorm:"many2many:actions_hosts;"`
+	TagsRef      []Tag               `gorm:"many2many:actions_tags;"`
+	Tags         []string            `gorm:"-"`
+	Script       *string
+	FailOnErrors *bool
+	Variables    datatypes.JSON
 }
 
 func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
@@ -304,13 +305,14 @@ func MarshalAction(a models.Action) Action {
 	}
 
 	return Action{
-		Name:        a.Name,
-		Script:      a.Script,
-		Groups:      a.Groups,
-		Triggers:    a.Triggers,
-		Connections: conns,
-		Tags:        a.Tags,
-		Variables:   b,
+		Name:         a.Name,
+		Script:       a.Script,
+		Groups:       a.Groups,
+		Triggers:     a.Triggers,
+		Connections:  conns,
+		Tags:         a.Tags,
+		Variables:    b,
+		FailOnErrors: a.FailOnErrors,
 	}
 }
 
@@ -327,12 +329,13 @@ func UnmarshalAction(a Action) models.Action {
 	}
 
 	return models.Action{
-		Name:      a.Name,
-		Script:    a.Script,
-		Triggers:  a.Triggers,
-		Tags:      a.Tags,
-		Variables: v,
-		Groups:    a.Groups,
+		Name:         a.Name,
+		Script:       a.Script,
+		Triggers:     a.Triggers,
+		Tags:         a.Tags,
+		Variables:    v,
+		Groups:       a.Groups,
+		FailOnErrors: a.FailOnErrors,
 		//Hosts: a.Connections,
 	}
 }
@@ -350,13 +353,14 @@ func ReduceExtended(m *models.ActionExt) *models.Action {
 		m.Tags = []string{}
 	}
 	return &models.Action{
-		Name:      m.Name,
-		Groups:    m.Groups,
-		Script:    m.Script,
-		Tags:      m.Tags,
-		Triggers:  triggers,
-		Hosts:     services,
-		Variables: m.Variables,
+		Name:         m.Name,
+		Groups:       m.Groups,
+		Script:       m.Script,
+		Tags:         m.Tags,
+		Triggers:     triggers,
+		Hosts:        services,
+		Variables:    m.Variables,
+		FailOnErrors: m.FailOnErrors,
 	}
 }
 
@@ -370,13 +374,14 @@ func UnmarshalActionExt(a Action) models.ActionExt {
 	}
 
 	return models.ActionExt{
-		Name:      a.Name,
-		Script:    a.Script,
-		Groups:    a.Groups,
-		Triggers:  UnmarshalArrayActionExt(a.TriggersRef),
-		Hosts:     a.Connections,
-		Tags:      a.Tags,
-		Variables: v,
+		Name:         a.Name,
+		Script:       a.Script,
+		Groups:       a.Groups,
+		Triggers:     UnmarshalArrayActionExt(a.TriggersRef),
+		Hosts:        a.Connections,
+		Tags:         a.Tags,
+		Variables:    v,
+		FailOnErrors: a.FailOnErrors,
 	}
 }
 

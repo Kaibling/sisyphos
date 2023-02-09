@@ -3,6 +3,7 @@ package gormrepo
 import (
 	"time"
 
+	"sisyphos/lib/utils"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -12,7 +13,10 @@ type Run struct {
 	DBModel
 	RunID     string
 	RequestID string
+	ParentID  string
 	User      string
+	HostID    *string `gorm:"size:255"`
+	Host      Host
 	ActionID  string `gorm:"size:255"`
 	Action    Action
 	StartTime time.Time
@@ -20,6 +24,7 @@ type Run struct {
 	Duration  string
 	Output    string
 	Error     string
+	Status    string
 }
 
 type RunRepo struct {
@@ -44,7 +49,7 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = r.getDB().Omit("ActionRef").Create(&run).Error
+		err = r.getDB().Omit("ActionRef.*").Omit().Omit("HostRef").Create(&run).Error
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +64,7 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 
 func (r *RunRepo) ReadByRunID(runid interface{}) (*models.Run, error) {
 	var a Run
-	err := r.db.Model(&Run{}).Where(&Run{RunID: runid.(string)}).Preload("Action").First(&a).Error
+	err := r.db.Model(&Run{}).Where(&Run{RunID: runid.(string)}).Preload("Action").Preload("Host").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +74,7 @@ func (r *RunRepo) ReadByRunID(runid interface{}) (*models.Run, error) {
 
 func (r *RunRepo) ReadByReqID(reqID interface{}) ([]models.Run, error) {
 	var a []Run
-	err := r.getDB().Model(&Run{}).Where(&Run{RequestID: reqID.(string)}).Preload("Action").Find(&a).Error
+	err := r.getDB().Model(&Run{}).Where(&Run{RequestID: reqID.(string)}).Preload("Action").Preload("Host").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -84,18 +89,9 @@ func (r *RunRepo) GetUsername() string {
 	return r.username
 }
 
-// func (r *RunRepo) GetID(name string) (string, error) {
-// 	var a Run
-// 	err := r.db.Model(&Run{}).Where(&RunID{Name: name}).Find(&a).Error
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return a.Name, nil
-// }
-
 func (r *RunRepo) ReadAll() ([]models.Run, error) {
 	var a []Run
-	err := r.db.Model(&Run{}).Find(&a).Error
+	err := r.db.Model(&Run{}).Preload("HostRef").Preload("ActionRef").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -109,11 +105,17 @@ func MarshalRun(a models.Run, db *gorm.DB) (*Run, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// diff := a.EndTime.Sub(a.StartTime)
+	hostRepo := NewHostRepo(db)
+	hID, err := hostRepo.GetID(utils.PtrRead(a.Host))
+	var hostID *string
+	if err == nil {
+		hostID = &hID
+	}
 	return &Run{
 		RunID:     a.RunID,
 		RequestID: a.RequestID,
+		ParentID:  a.ParentID,
+		HostID:    hostID,
 		User:      a.User,
 		ActionID:  actionID,
 		StartTime: a.StartTime,
@@ -121,6 +123,7 @@ func MarshalRun(a models.Run, db *gorm.DB) (*Run, error) {
 		Duration:  a.Duration,
 		Output:    a.Output,
 		Error:     a.Error,
+		Status:    a.Status,
 	}, nil
 }
 
@@ -128,13 +131,16 @@ func UnmarshalRun(a Run) models.Run {
 	return models.Run{
 		RunID:     a.RunID,
 		RequestID: a.RequestID,
+		ParentID:  a.ParentID,
 		User:      a.User,
+		Host:      a.Host.Name,
 		Action:    *a.Action.Name,
 		StartTime: a.StartTime,
 		EndTime:   a.EndTime,
 		Duration:  a.Duration,
 		Output:    a.Output,
 		Error:     a.Error,
+		Status:    a.Status,
 	}
 }
 
