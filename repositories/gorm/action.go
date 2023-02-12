@@ -384,19 +384,15 @@ func UnmarshalAction(a Action) models.Action {
 		a.Tags = []string{}
 	}
 
-	triggers := []models.OrderdAction{}
-	for _, h := range a.Actions {
-		triggers = append(triggers, models.OrderdAction{Action: h})
-	}
-
 	return models.Action{
 		Name:         a.Name,
 		Script:       a.Script,
-		Actions:      triggers,
+		Actions:      a.OrderedActions,
 		Tags:         a.Tags,
 		Variables:    v,
 		Groups:       a.Groups,
 		FailOnErrors: a.FailOnErrors,
+		Hosts:        a.OrderedHosts,
 	}
 }
 
