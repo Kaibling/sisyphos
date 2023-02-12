@@ -1,0 +1,120 @@
+/* #root {
+  max-width: 1280px;
+} */
+
+/* .logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+} */
+/* .logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+} */
+
+/* @keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} */
+
+/* @media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+} */
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+.tag-card {
+  height: 1em;
+  width: 3em;
+ 
+  text-align: center;
+  background-color:  rgba(31, 112, 233, 0.63);
+  border-radius: 20%;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+.tag-card:hover {
+  background: rgb(24, 32, 193);
+  color: rgb(219, 215, 215);
+}
+
+.tag-table { 
+  border-spacing: 0.3em;
+  border-collapse: separate;
+}
+
+
+.tag-div {
+  place-items: center;
+}
+
+
+.action-card {
+  padding-top: 1px;
+  padding-right: 200x;
+  padding-bottom: 1px;
+  padding-left: 5px;
+  place-items: left;
+  background: rgb(221, 218, 218);
+  border-radius: 5px;
+  height: auto;
+
+}
+
+
+.host-card {
+  background-color:  rgba(202, 211, 224, 0.63);
+  border-radius: 3px;
+}
+
+.not-selectable  {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+
+
+.loginBackground {
+  margin: 0;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* background-color: blue; */
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  align-items: 'center';
+}
+
+.logincard {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* background-color: blue; */
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  align-items: 'center';
+}
+
+.button {
+  margin:0 auto;
+  display:block;
+}

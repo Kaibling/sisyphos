@@ -1,0 +1,21 @@
+.form-group {
+    display: flex;
+    /* background-color: black; */
+    padding-bottom: 10px;
+}
+
+
+.flex-child {
+    flex: 1;
+    display: grid;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+.single-child {
+    display: grid;
+    padding-right: 10px;
+    padding-left: 10px;
+    padding-bottom: 10px;
+}
+
