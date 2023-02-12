@@ -28,5 +28,5 @@ func (h *Host) ToSSHConfig() SSHConfig {
 
 type OrderedHost struct {
 	HostName string `json:"name"`
-	Order    int    `json:"order,omitempty"`
+	Order    int    `json:"order"`
 }
