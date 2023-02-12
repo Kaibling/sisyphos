@@ -72,3 +72,18 @@ func (s *HostService) TestConnection(name any) error {
 
 	return nil
 }
+
+func (s *HostService) GetSSHConfig(name any) (*models.SSHConfig, error) {
+	h, err := s.ReadByName(name)
+	if err != nil {
+		return nil, err
+	}
+	return &models.SSHConfig{
+		Address:    utils.PtrRead(h.Address),
+		Port:       utils.PtrRead(h.Port),
+		Username:   utils.PtrRead(h.Username),
+		Password:   utils.PtrRead(h.Password),
+		PrivateKey: utils.PtrRead(h.SSHKey),
+		KnownKey:   utils.PtrRead(h.KnownKey),
+	}, nil
+}

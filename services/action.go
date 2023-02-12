@@ -27,6 +27,7 @@ type ActionService struct {
 	repo          actionRepo
 	permService   *PermissionService
 	runLogService *RunService
+	hostService   *HostService
 }
 
 func NewActionService(repo actionRepo) *ActionService {
@@ -39,6 +40,10 @@ func (s *ActionService) AddPermissionService(p *PermissionService) {
 
 func (s *ActionService) AddRunService(r *RunService) {
 	s.runLogService = r
+}
+
+func (s *ActionService) AddHostService(r *HostService) {
+	s.hostService = r
 }
 
 func (s *ActionService) Create(models []models.Action) ([]models.Action, error) {
@@ -104,6 +109,9 @@ func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
 	if s.runLogService == nil {
 		return nil, errors.New("no Run service instantiated")
 	}
+	if s.hostService == nil {
+		return nil, errors.New("no host service instantiated")
+	}
 	r.Variables["failonerrors"] = utils.PtrRead(r.FailOnErrors)
 	r.Variables = CombineVars(r.Variables, config.Config.GlobalVars)
 	s.run(r, "")
@@ -120,7 +128,7 @@ func (s *ActionService) run(r *models.ActionExt, parentID string) error {
 	execLog.Status = apperrors.ScriptRunSuccess
 
 	for _, tr := range r.Triggers {
-		t, err := s.ReadExt(utils.PtrRead(tr.Name))
+		t, err := s.ReadExt(utils.PtrRead(&tr.ActionExt))
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
@@ -153,19 +161,26 @@ func (s *ActionService) run(r *models.ActionExt, parentID string) error {
 		}
 
 		for _, connection := range r.Hosts {
-			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), utils.PtrRead(connection.Name))
+			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), utils.PtrRead(&connection.HostName))
 			hostExecLog := models.NewRun(*r.Name,
 				s.runLogService.repo.GetUsername(),
 				s.runLogService.repo.GetRequestID(),
 				execLog.RequestID)
-			hostExecLog.Host = connection.Host.Name
+			hostExecLog.Host = &connection.HostName
 
 			sshc := ssh.NewSSHConnector()
 			sshService := NewSSHService(sshc)
-			cfg := connection.ToSSHConfig()
+			cfg, err := s.hostService.GetSSHConfig(connection.HostName)
+			if err != nil {
+				execLog.Error = err.Error()
+				execLog.SetEndTime()
+				s.runLogService.Create(execLog)
+				return err
+			}
+			//cfg := connection.ToSSHConfig()
 
 			cmd := replaceVariables(utils.PtrRead(r.Script), r.Variables)
-			output, serr := sshService.RunCommand(cfg, cmd)
+			output, serr := sshService.RunCommand(*cfg, cmd)
 			if serr != nil {
 				hostExecLog.Error = serr.Error()
 				hostExecLog.Status = apperrors.ScriptRunFailed

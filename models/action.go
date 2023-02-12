@@ -10,8 +10,8 @@ type Action struct {
 	Groups       []string               `json:"groups"`
 	Script       *string                `json:"script"`
 	Tags         []string               `json:"tags"`
-	Triggers     []string               `json:"triggers"`
-	Hosts        []Service              `json:"hosts"`
+	Actions      []OrderdAction         `json:"actions"`
+	Hosts        []OrderedHost          `json:"hosts"`
 	Variables    map[string]interface{} `json:"variables"`
 	FailOnErrors *bool                  `json:"fail_on_errors"`
 }
@@ -33,9 +33,19 @@ type ActionExt struct {
 	Name         *string
 	Groups       []string `json:"groups"`
 	Script       *string
-	Triggers     []ActionExt
+	Triggers     []OrderdActionExt
 	Tags         []string
-	Hosts        []Connection
+	Hosts        []OrderedHost
 	Variables    map[string]interface{}
 	FailOnErrors *bool `json:"fail_on_errors"`
+}
+
+type OrderdAction struct {
+	Action string `json:"action"`
+	Order  int    `json:"order"`
+}
+
+type OrderdActionExt struct {
+	ActionExt string `json:"action"`
+	Order     int    `json:"order"`
 }

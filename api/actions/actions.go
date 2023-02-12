@@ -117,6 +117,11 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	)
 	runService := services.NewRunService(runRepo)
 	actionService.AddRunService(runService)
+	hostRepo := gormrepo.NewHostRepo(
+		utils.GetContext("db", r).(*gorm.DB),
+	)
+	hostService := services.NewHostService(hostRepo)
+	actionService.AddHostService(hostService)
 	runs, err := actionService.InitRun(extActions)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))

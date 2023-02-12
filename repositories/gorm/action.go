@@ -15,15 +15,15 @@ import (
 
 type Action struct {
 	DBModel
-	Name         *string             `gorm:"unique"`
-	Triggers     []string            `gorm:"-"`
-	TriggersRef  []Action            `gorm:"many2many:action_triggers;"`
-	Groups       []string            `gorm:"-"`
-	GroupsRef    []Group             `gorm:"many2many:groups_actions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Connections  []models.Connection `gorm:"-"`
-	HostsRef     []Host              `gorm:"many2many:actions_hosts;"`
-	TagsRef      []Tag               `gorm:"many2many:actions_tags;"`
-	Tags         []string            `gorm:"-"`
+	Name         *string              `gorm:"unique"`
+	Triggers     []string             `gorm:"-"`
+	TriggersRef  []Action             `gorm:"many2many:action_triggers;"`
+	Groups       []string             `gorm:"-"`
+	GroupsRef    []Group              `gorm:"many2many:groups_actions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	OrderedHost  []models.OrderedHost `gorm:"-"`
+	HostsRef     []Host               `gorm:"many2many:actions_hosts;"`
+	TagsRef      []Tag                `gorm:"many2many:actions_tags;"`
+	Tags         []string             `gorm:"-"`
 	Script       *string
 	FailOnErrors *bool
 	Variables    datatypes.JSON
@@ -89,10 +89,16 @@ func (a *Action) AfterFind(tx *gorm.DB) (err error) {
 type ActionsHosts struct {
 	HostID   string `gorm:"type:varchar(191);primaryKey"`
 	ActionID string `gorm:"type:varchar(191);primaryKey"`
-	//Port     string
-	Order int
-	Name  string
+	Order    int
+	Name     string
 }
+
+// type ActionsActionss struct {
+// 	HostID   string `gorm:"type:varchar(191);primaryKey"`
+// 	ActionID string `gorm:"type:varchar(191);primaryKey"`
+// 	Order    int
+// 	Name     string
+// }
 
 type ActionRepo struct {
 	db *gorm.DB
@@ -123,9 +129,9 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 			tx.Rollback()
 			return nil, err
 		}
-		for _, c := range action.Connections {
+		for _, c := range action.OrderedHost {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(utils.PtrRead(c.Name))
+			hostID, err := hostRepo.GetID(utils.PtrRead(&c.HostName))
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -170,16 +176,16 @@ func (r *ActionRepo) ReadExt(name interface{}) (*models.ActionExt, error) {
 		return nil, err
 	}
 
-	conns := []models.Connection{}
+	conns := []models.OrderedHost{}
 	for _, host := range a.HostsRef {
 		for _, rel := range ah {
 			if rel.HostID == host.ID {
-				mh := UnmarshalHost(host)
-				conns = append(conns, models.Connection{Host: mh, Order: rel.Order})
+				//mh := UnmarshalHost(host)
+				conns = append(conns, models.OrderedHost{HostName: *host.Name, Order: rel.Order})
 			}
 		}
 	}
-	a.Connections = conns
+	a.OrderedHost = conns
 	m := UnmarshalActionExt(a)
 	return &m, nil
 }
@@ -195,16 +201,16 @@ func (r *ActionRepo) ReadExtIDs(ids []interface{}) ([]models.ActionExt, error) {
 			return nil, err
 		}
 
-		conns := []models.Connection{}
+		conns := []models.OrderedHost{}
 		for _, host := range action.HostsRef {
 			for _, rel := range ah {
 				if rel.HostID == host.ID {
-					mh := UnmarshalHost(host)
-					conns = append(conns, models.Connection{Host: mh, Order: rel.Order})
+					// mh := UnmarshalHost(host)
+					conns = append(conns, models.OrderedHost{HostName: *host.Name, Order: rel.Order})
 				}
 			}
 		}
-		action.Connections = conns
+		action.OrderedHost = conns
 		actionExt = append(actionExt, UnmarshalActionExt(action))
 	}
 	return actionExt, nil
@@ -267,10 +273,10 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 			return nil, err
 		}
 	}
-	if uAction.Connections != nil {
-		for _, conn := range uAction.Connections {
+	if uAction.OrderedHost != nil {
+		for _, conn := range uAction.OrderedHost {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(*conn.Name)
+			hostID, err := hostRepo.GetID(conn.HostName)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -299,17 +305,22 @@ func MarshalAction(a models.Action) Action {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	conns := []models.Connection{}
+	conns := []models.OrderedHost{}
 	for _, h := range a.Hosts {
-		conns = append(conns, models.Connection{Host: models.Host{Name: &h.HostName}, Order: h.Order})
+		conns = append(conns, models.OrderedHost{HostName: h.HostName, Order: h.Order})
+	}
+
+	triggers := []string{}
+	for _, h := range a.Actions {
+		triggers = append(triggers, h.Action)
 	}
 
 	return Action{
 		Name:         a.Name,
 		Script:       a.Script,
 		Groups:       a.Groups,
-		Triggers:     a.Triggers,
-		Connections:  conns,
+		Triggers:     triggers,
+		OrderedHost:  conns,
 		Tags:         a.Tags,
 		Variables:    b,
 		FailOnErrors: a.FailOnErrors,
@@ -328,10 +339,15 @@ func UnmarshalAction(a Action) models.Action {
 		a.Tags = []string{}
 	}
 
+	triggers := []models.OrderdAction{}
+	for _, h := range a.Triggers {
+		triggers = append(triggers, models.OrderdAction{Action: h})
+	}
+
 	return models.Action{
 		Name:         a.Name,
 		Script:       a.Script,
-		Triggers:     a.Triggers,
+		Actions:      triggers,
 		Tags:         a.Tags,
 		Variables:    v,
 		Groups:       a.Groups,
@@ -341,13 +357,13 @@ func UnmarshalAction(a Action) models.Action {
 }
 
 func ReduceExtended(m *models.ActionExt) *models.Action {
-	triggers := []string{}
-	for _, t := range m.Triggers {
-		triggers = append(triggers, *t.Name)
+	triggers := []models.OrderdAction{}
+	for _, h := range m.Triggers {
+		triggers = append(triggers, models.OrderdAction{Action: h.ActionExt})
 	}
-	services := []models.Service{}
+	services := []models.OrderedHost{}
 	for _, c := range m.Hosts {
-		services = append(services, models.Service{HostName: *c.Name, Order: c.Order})
+		services = append(services, models.OrderedHost{HostName: c.HostName, Order: c.Order})
 	}
 	if len(m.Tags) == 0 {
 		m.Tags = []string{}
@@ -357,7 +373,7 @@ func ReduceExtended(m *models.ActionExt) *models.Action {
 		Groups:       m.Groups,
 		Script:       m.Script,
 		Tags:         m.Tags,
-		Triggers:     triggers,
+		Actions:      triggers,
 		Hosts:        services,
 		Variables:    m.Variables,
 		FailOnErrors: m.FailOnErrors,
@@ -373,12 +389,18 @@ func UnmarshalActionExt(a Action) models.ActionExt {
 		}
 	}
 
+	orderedActionExt := []models.OrderdActionExt{}
+	actions := UnmarshalArrayActionExt(a.TriggersRef)
+	for _, a := range actions {
+		orderedActionExt = append(orderedActionExt, models.OrderdActionExt{ActionExt: *a.Name})
+	}
+
 	return models.ActionExt{
 		Name:         a.Name,
 		Script:       a.Script,
 		Groups:       a.Groups,
-		Triggers:     UnmarshalArrayActionExt(a.TriggersRef),
-		Hosts:        a.Connections,
+		Triggers:     orderedActionExt,
+		Hosts:        a.OrderedHost,
 		Tags:         a.Tags,
 		Variables:    v,
 		FailOnErrors: a.FailOnErrors,
