@@ -7,7 +7,6 @@ import (
 )
 
 type Run struct {
-	// Action     ActionExt `json:"action,omitempty"`
 	Action    string    `json:"action"`
 	Host      *string   `json:"host"`
 	RequestID string    `json:"request_id"`

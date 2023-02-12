@@ -29,23 +29,7 @@ func (a *Action) Default() {
 	}
 }
 
-type ActionExt struct {
-	Name         *string
-	Groups       []string `json:"groups"`
-	Script       *string
-	Triggers     []OrderdActionExt
-	Tags         []string
-	Hosts        []OrderedHost
-	Variables    map[string]interface{}
-	FailOnErrors *bool `json:"fail_on_errors"`
-}
-
 type OrderdAction struct {
 	Action string `json:"action"`
 	Order  int    `json:"order"`
-}
-
-type OrderdActionExt struct {
-	ActionExt string `json:"action"`
-	Order     int    `json:"order"`
 }

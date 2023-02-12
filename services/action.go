@@ -18,9 +18,7 @@ type actionRepo interface {
 	Create(actions []models.Action) ([]models.Action, error)
 	ReadByName(name interface{}) (*models.Action, error)
 	ReadIDs(ids []interface{}) ([]models.Action, error)
-	ReadExtIDs(ids []interface{}) ([]models.ActionExt, error)
 	ReadRuns(actionname interface{}) ([]models.Run, error)
-	ReadExt(name interface{}) (*models.ActionExt, error)
 }
 
 type ActionService struct {
@@ -64,10 +62,6 @@ func (s *ActionService) ReadByName(name interface{}) (*models.Action, error) {
 	return s.repo.ReadByName(name)
 }
 
-// func (s *ActionService) ReadAll() ([]models.Action, error) {
-// 	return s.repo.ReadAll()
-// }
-
 func (s *ActionService) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	return s.repo.ReadRuns(actionname)
 }
@@ -99,13 +93,9 @@ func (s *ActionService) Update(name string, data *models.Action) (*models.Action
 	return s.repo.Update(name, data)
 }
 
-func (s *ActionService) ReadExt(name interface{}) (*models.ActionExt, error) {
-	return s.repo.ReadExt(name)
-}
-
 type JSON = map[string]interface{}
 
-func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
+func (s *ActionService) InitRun(r *models.Action) ([]models.Run, error) {
 	if s.runLogService == nil {
 		return nil, errors.New("no Run service instantiated")
 	}
@@ -118,7 +108,7 @@ func (s *ActionService) InitRun(r *models.ActionExt) ([]models.Run, error) {
 	return s.runLogService.ReadByReqID()
 }
 
-func (s *ActionService) run(r *models.ActionExt, parentID string) error {
+func (s *ActionService) run(r *models.Action, parentID string) error {
 	fmt.Printf("Start run %s pid:%s\n", utils.PtrRead(r.Name), parentID)
 	execLog := models.NewRun(utils.PtrRead(r.Name),
 		s.runLogService.repo.GetUsername(),
@@ -127,8 +117,8 @@ func (s *ActionService) run(r *models.ActionExt, parentID string) error {
 	)
 	execLog.Status = apperrors.ScriptRunSuccess
 
-	for _, tr := range r.Triggers {
-		t, err := s.ReadExt(utils.PtrRead(&tr.ActionExt))
+	for _, tr := range r.Actions {
+		t, err := s.ReadByName(tr.Action)
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()

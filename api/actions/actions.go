@@ -26,17 +26,10 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
 	var m []models.Action
 	err := json.NewDecoder(r.Body).Decode(&m)
-	// body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
 		return
 	}
-
-	// err = json.Unmarshal(body, &m)
-	// if err != nil {
-	// 	render.Render(w, r, env.SetError(err))
-	// 	return
-	// }
 	actions, err := actionService.Create(m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
@@ -48,7 +41,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
 	name := chi.URLParam(r, "name")
-	var m models.Action //map[string]interface{}
+	var m models.Action
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
@@ -81,11 +74,9 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 	db := utils.GetContext("db", r).(*gorm.DB)
 	if md.Filter != "" {
 		// TODO clean up. no db here
-
 		f := gormrepo.NewFilter(db, "actions")
 		actions, err = actionService.ReadAllFiltered(md, f)
 	} else {
-		// actions, err = actionService.ReadAllExtended()
 		permRepo := gormrepo.NewPermissionRepo(db)
 		permService := services.NewPermissionService(permRepo)
 		actionService.AddPermissionService(permService)
@@ -105,7 +96,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 func Execute(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
 	name := chi.URLParam(r, "name")
-	extActions, err := actionService.ReadExt(name)
+	extActions, err := actionService.ReadByName(name)
 	if err != nil {
 		render.Render(w, r, env.SetError(err))
 		return
