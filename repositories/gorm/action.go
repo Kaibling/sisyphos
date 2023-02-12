@@ -123,6 +123,12 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 	}()
 	for _, a := range actions {
 		action := MarshalAction(a)
+		if action.Script == nil {
+			action.Script = utils.ToPointer("")
+		}
+		if action.Variables == nil {
+			action.Variables.UnmarshalJSON([]byte("{}"))
+		}
 		err := tx.Omit("HostsRef").Omit("ActionsRef").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
 			tx.Rollback()
@@ -130,7 +136,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 		}
 		for _, c := range action.OrderedHosts {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(utils.PtrRead(&c.HostName))
+			hostID, err := hostRepo.GetID(utils.PtrRead(&c.Name))
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -150,7 +156,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 
 		for _, a := range action.OrderedActions {
 			actionRepo := NewActionRepo(tx)
-			actionID, err := actionRepo.GetID(a.Action)
+			actionID, err := actionRepo.GetID(a.Name)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -190,7 +196,7 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	for _, host := range a.HostsRef {
 		for _, rel := range ah {
 			if rel.HostID == host.ID {
-				conns = append(conns, models.OrderedHost{HostName: *host.Name, Order: rel.Order})
+				conns = append(conns, models.OrderedHost{Name: *host.Name, Order: rel.Order})
 			}
 		}
 	}
@@ -206,7 +212,7 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	for _, action := range a.ActionsRef {
 		for _, rel := range aa {
 			if rel.ActionsRefID == action.ID {
-				orderActions = append(orderActions, models.OrderdAction{Action: *action.Name, Order: rel.Order})
+				orderActions = append(orderActions, models.OrderdAction{Name: *action.Name, Order: rel.Order})
 			}
 		}
 	}
@@ -230,7 +236,7 @@ func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 		for _, host := range action.HostsRef {
 			for _, rel := range ah {
 				if rel.HostID == host.ID {
-					conns = append(conns, models.OrderedHost{HostName: *host.Name, Order: rel.Order})
+					conns = append(conns, models.OrderedHost{Name: *host.Name, Order: rel.Order})
 				}
 			}
 		}
@@ -245,7 +251,7 @@ func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 		for _, action := range action.ActionsRef {
 			for _, rel := range aa {
 				if rel.ActionsRefID == action.ID {
-					orderActions = append(orderActions, models.OrderdAction{Action: *action.Name, Order: rel.Order})
+					orderActions = append(orderActions, models.OrderdAction{Name: *action.Name, Order: rel.Order})
 				}
 			}
 		}
@@ -292,7 +298,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	if uAction.OrderedActions != nil {
 		for _, conn := range uAction.OrderedActions {
 			actionRepo := NewActionRepo(tx)
-			actionID, err := actionRepo.GetID(conn.Action)
+			actionID, err := actionRepo.GetID(conn.Name)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -316,7 +322,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	if uAction.OrderedHosts != nil {
 		for _, conn := range uAction.OrderedHosts {
 			hostRepo := NewHostRepo(tx)
-			hostID, err := hostRepo.GetID(conn.HostName)
+			hostID, err := hostRepo.GetID(conn.Name)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -347,16 +353,16 @@ func MarshalAction(a models.Action) Action {
 	}
 	orderHost := []models.OrderedHost{}
 	for _, h := range a.Hosts {
-		orderHost = append(orderHost, models.OrderedHost{HostName: h.HostName, Order: h.Order})
+		orderHost = append(orderHost, models.OrderedHost{Name: h.Name, Order: h.Order})
 	}
 	orderAction := []models.OrderdAction{}
 	for _, a := range a.Actions {
-		orderAction = append(orderAction, models.OrderdAction{Action: a.Action, Order: a.Order})
+		orderAction = append(orderAction, models.OrderdAction{Name: a.Name, Order: a.Order})
 	}
 
 	triggers := []string{}
 	for _, h := range a.Actions {
-		triggers = append(triggers, h.Action)
+		triggers = append(triggers, h.Name)
 	}
 
 	return Action{
@@ -374,12 +380,16 @@ func MarshalAction(a models.Action) Action {
 
 func UnmarshalAction(a Action) models.Action {
 	v := map[string]interface{}{}
-	if a.Variables.String() != "null" {
-		err := json.Unmarshal(a.Variables.MarshalJSON())
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	// if a.Variables.String() != "null" {
+	byteVar, err := a.Variables.MarshalJSON()
+	if err != nil {
+		fmt.Println(err.Error())
 	}
+	err = json.Unmarshal(byteVar, &v)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	// }
 	if len(a.Tags) == 0 {
 		a.Tags = []string{}
 	}

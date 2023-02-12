@@ -118,7 +118,7 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 	execLog.Status = apperrors.ScriptRunSuccess
 
 	for _, tr := range r.Actions {
-		t, err := s.ReadByName(tr.Action)
+		t, err := s.ReadByName(tr.Name)
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
@@ -151,16 +151,16 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 		}
 
 		for _, connection := range r.Hosts {
-			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), utils.PtrRead(&connection.HostName))
+			fmt.Printf("try ssh run %s on %s\n", utils.PtrRead(r.Name), utils.PtrRead(&connection.Name))
 			hostExecLog := models.NewRun(*r.Name,
 				s.runLogService.repo.GetUsername(),
 				s.runLogService.repo.GetRequestID(),
 				execLog.RequestID)
-			hostExecLog.Host = &connection.HostName
+			hostExecLog.Host = &connection.Name
 
 			sshc := ssh.NewSSHConnector()
 			sshService := NewSSHService(sshc)
-			cfg, err := s.hostService.GetSSHConfig(connection.HostName)
+			cfg, err := s.hostService.GetSSHConfig(connection.Name)
 			if err != nil {
 				execLog.Error = err.Error()
 				execLog.SetEndTime()

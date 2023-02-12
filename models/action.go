@@ -30,6 +30,6 @@ func (a *Action) Default() {
 }
 
 type OrderdAction struct {
-	Action string `json:"action"`
-	Order  int    `json:"order"`
+	Name  string `json:"name"`
+	Order int    `json:"order"`
 }
