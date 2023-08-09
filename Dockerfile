@@ -1,3 +1,2 @@
-FROM golang:1.19
-#RUN apt update && 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+FROM golang:1.21
+ENTRYPOINT ["make","run"]

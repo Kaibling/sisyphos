@@ -1,5 +1,5 @@
 build:
-	go mod tidy && go build -o sisyphos
+	go mod tidy && go build -o sisyphos -buildvcs=false
 test:
 	go test -v ./... -race -covermode=atomic
 run: deps
