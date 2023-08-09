@@ -1,0 +1,951 @@
+openapi: 3.0.3
+info:
+  title: Sisyphos
+  version: 0.0.0
+tags:
+  - name: actions
+  - name: authentication
+  - name: groups
+    description: permission groups
+  - name: hosts
+  - name: tags
+  - name: users
+paths:
+  /actions:
+    post:
+      tags:
+        - actions
+      summary: Add a new action
+      description: Add a new action
+      operationId: addAction
+      requestBody:
+        description: Create a new action
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/action'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/action'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+    get:
+      tags:
+        - actions
+      summary: read all existing actions
+      description: read all existing actions
+      operationId: readActions
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/action_list'       
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /actions/{name}:
+    get:
+      tags:
+        - actions
+      summary: read an existing action
+      description: read an existing action by name
+      operationId: updateAction
+      parameters:
+        - name: name
+          in: path
+          description: name of the action for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/action'     
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - actions
+      summary: Update an existing action
+      description: Update an existing action by name
+      operationId: updateAction
+      parameters:
+        - name: name
+          in: path
+          description: name of the action for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent action
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/action'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/action'        
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - actions
+      summary: delete an existing action
+      description: delete an existing action by name
+      operationId: deleteAction
+      parameters:
+        - name: name
+          in: path
+          description: name of the action for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation        
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /groups:
+    post:
+      tags:
+        - groups
+      summary: Add a new group
+      description: Add a new group
+      operationId: addGroups
+      requestBody:
+        description: Create a new group
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/group'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/group'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+    get:
+      tags:
+        - groups
+      summary: read all existing groups
+      description: read all existing groups
+      operationId: readGroups
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/group_list'       
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /groups/{name}:
+    get:
+      tags:
+        - groups
+      summary: read an existing group
+      description: read an existing group by name
+      operationId: updateGroup
+      parameters:
+        - name: name
+          in: path
+          description: name of the group for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/group'     
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - groups
+      summary: Update an existing group
+      description: Update an existing group by name
+      operationId: updateGroup
+      parameters:
+        - name: name
+          in: path
+          description: name of the group for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent group
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/group'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/group'        
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - groups
+      summary: delete an existing group
+      description: delete an existing group by name
+      operationId: deleteGroup
+      parameters:
+        - name: name
+          in: path
+          description: name of the action for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation        
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /hosts:
+    post:
+      tags:
+        - hosts
+      summary: Add a new host
+      description: Add a new host
+      operationId: addHost
+      requestBody:
+        description: Create a new host
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/host'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/host'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+    get:
+      tags:
+        - hosts
+      summary: read all existing hosts
+      description: read all existing hosts
+      operationId: readHosts
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/host_list'       
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /hosts/{name}:
+    get:
+      tags:
+        - hosts
+      summary: read an existing host
+      description: read an existing host by name
+      operationId: updateHost
+      parameters:
+        - name: name
+          in: path
+          description: name of the host for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/host'     
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - hosts
+      summary: Update an existing host
+      description: Update an existing host by name
+      operationId: updateHost
+      parameters:
+        - name: name
+          in: path
+          description: name of the host for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent host
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/host'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/host'        
+        '404':
+          description: host not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - hosts
+      summary: delete an existing host
+      description: delete an existing host by name
+      operationId: deleteHost
+      parameters:
+        - name: name
+          in: path
+          description: name of the host for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation        
+        '404':
+          description: host not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /tags:
+    post:
+      tags:
+        - tags
+      summary: Add a new tag
+      description: Add a new tag
+      operationId: addTag
+      requestBody:
+        description: Create a new tag
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tag'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/tag'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+    get:
+      tags:
+        - tags
+      summary: read all existing tags
+      description: read an existing tags
+      operationId: readTags
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/tag_list'       
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /tag/{name}:
+    get:
+      tags:
+        - tags
+      summary: read an existing tag
+      description: read an existing tag by name
+      operationId: updateTag
+      parameters:
+        - name: name
+          in: path
+          description: name of the tag for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/tag'     
+        '404':
+          description: tag not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - tags
+      summary: Update an existing tag
+      description: Update an existing tag by name
+      operationId: updateTag
+      parameters:
+        - name: name
+          in: path
+          description: name of the tag for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent tag
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tag'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/tag'        
+        '404':
+          description: tag not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - tags
+      summary: delete an existing tag
+      description: delete an existing tag by name
+      operationId: deleteTag
+      parameters:
+        - name: name
+          in: path
+          description: name of the tag for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation        
+        '404':
+          description: tag not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /users:
+    post:
+      tags:
+        - users
+      summary: Add a new user
+      description: Add a new user
+      operationId: addUser
+      requestBody:
+        description: Create a new user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/user'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+    get:
+      tags:
+        - users
+      summary: read all existing users
+      description: read an existing users
+      operationId: readUsers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/user_list'
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /user/{name}:
+    get:
+      tags:
+        - users
+      summary: read an existing user
+      description: read an existing user by name
+      operationId: readUser
+      parameters:
+        - name: name
+          in: path
+          description: name of the user for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/user'     
+        '404':
+          description: user not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - users
+      summary: Update an existing user
+      description: Update an existing user by name
+      operationId: updateUser
+      parameters:
+        - name: name
+          in: path
+          description: name of the user for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/user'        
+        '404':
+          description: user not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - users
+      summary: delete an existing user
+      description: delete an existing user by name
+      operationId: deleteUser
+      parameters:
+        - name: name
+          in: path
+          description: name of the user for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation        
+        '404':
+          description: user not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
+  /authentication/login:
+    post:
+      tags:
+        - authentication
+      summary: receive an bearer token
+      description: receive an bearer token
+      operationId: login
+      requestBody:
+        description: log user in
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/login'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/user'       
+        '405':
+          description: Invalid input
+components:
+  schemas:
+    action:
+      type: object
+      properties:
+        name:
+          type: string
+          example: update_os
+        groups:
+          type: array
+          items:
+            type: string
+        script:
+          type: string
+          example: /root/update.sh
+        tags:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ordered_action'
+        hosts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ordered_host'
+    ordered_host:
+      type: object
+      properties:
+        name:
+          type: string
+          example: server1.local
+        order:
+          type: number
+          example: 1
+    ordered_action:
+      type: object
+      properties:
+        name:
+          type: string
+          example: update_os
+        order:
+          type: number
+          example: 1
+    action_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/action'
+    envelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        request_id:
+          type: string
+          example: 01H7DK7Y38FBC7N3CCA5M29QFH
+        time:
+          type: boolean
+          example: true
+        error:
+          type: string
+          example: could not read path variable
+        message:
+          type: string
+          example: todo
+    login:
+      type: object
+      properties:
+        username:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        password:
+          type: array
+          items:
+            type: string
+            example: badpassword
+    group:
+      type: object
+      properties:
+        name:
+          type: string
+          example: devops_d2
+        description:
+          type: string
+          example: team d2 - contact d2@d2.d2
+        allows:
+          type: array
+          items:
+            type: string
+          example: ["update_os","restart_server_app1"]
+        users:
+          type: array
+          items:
+            type: string
+          example: ["xXx_360noSc0pe69_xXx","ckent"]
+    group_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/group'
+    host:
+      type: object
+      properties:
+        name:
+          type: string
+          example: app1 db1
+        username:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        password:
+          type: string
+          example: badpassword
+        ssh_key:
+          type: string
+          example: ssh-rsa dadadwqfefefef
+        known_key:
+          type: string
+          example: todo
+        address:
+          type: string
+          example: app1-db1.local
+        port:
+          type: number
+          example: 22
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["centos","linux","app"]
+    host_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/host'
+    tag:
+      type: object
+      properties:
+        name:
+          type: string
+          example: linux
+        description:
+          type: string
+          example: todo
+    tag_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/tag'
+    user:
+      type: object
+      properties:
+        name:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        password:
+          type: string
+          example: badpassword
+        token:
+          type: array
+          items:
+            type: string
+          example: ["01H7DK7Y38FBC7N3CCA5M29QFH"]
+        groups:
+          type: array
+          items:
+            type: string
+          example: ["devops_d2","default"]
+    user_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/user'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: random
