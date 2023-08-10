@@ -8,6 +8,9 @@ import (
 	"sisyphos/api"
 	"sisyphos/lib/apimiddleware"
 	"sisyphos/lib/config"
+	"sisyphos/lib/log"
+	"sisyphos/models"
+
 	gormrepo "sisyphos/repositories/gorm"
 
 	"github.com/go-chi/chi/middleware"
@@ -17,7 +20,21 @@ import (
 
 func main() {
 	config.Init()
-	db, err := gormrepo.InitDatabase()
+
+	l, err := log.New()
+	if err != nil {
+		fmt.Println("logger creation failed: ", err.Error())
+		return
+	}
+	ctx := context.WithValue(context.Background(), models.String("logger"), l)
+	dbconfig := gormrepo.DBConfig{
+		User:     config.Config.DBUser,
+		Port:     config.Config.DBPort,
+		Password: config.Config.DBPassword,
+		Host:     config.Config.DBHost,
+		Database: config.Config.DBDatabase,
+	}
+	db, err := gormrepo.InitDatabase(dbconfig, l)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -26,6 +43,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(injectContextData("db", db))
+	r.Use(injectContextData("logger", l))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		// Access-Control-Allow-Origin
@@ -41,8 +59,11 @@ func main() {
 
 	r.Mount("/", api.Routes())
 
-	displayRoutes(r)
-	fmt.Println("listening on :3000")
+	//displayRoutes(r)
+
+	//fmt.Println("listening on :3000")
+	log.Info(ctx, "listening on :3000")
+	//log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
 	err = http.ListenAndServe(":3000", r)
 	if err != nil {
 		fmt.Println(err.Error())

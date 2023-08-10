@@ -17,12 +17,20 @@ services:
    container_name: ssh
 
 
- mysql:
-   container_name: db
-   image: mysql:8.0
-   command: --default-authentication-plugin=mysql_native_password
-   environment:
-      MYSQL_DATABASE: db
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_USER: db
-      MYSQL_PASSWORD: example
+#  mysql:
+#    container_name: db
+#    image: mysql:8.0
+#    command: --default-authentication-plugin=mysql_native_password
+#    environment:
+#       MYSQL_DATABASE: db
+#       MYSQL_ROOT_PASSWORD: example
+#       MYSQL_USER: db
+#       MYSQL_PASSWORD: example
+ postgre:
+    container_name: db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: db
+      POSTGRES_DB: db
