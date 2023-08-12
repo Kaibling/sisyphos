@@ -54,5 +54,8 @@ services:
       POSTGRES_USER: db
       POSTGRES_DB: db
     volumes:
-      - "./db:/db"
+      - db-data:/var/lib/postgresql/data
 
+volumes:
+  db-data:
+    driver: local
