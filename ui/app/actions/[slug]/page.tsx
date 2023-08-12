@@ -2,7 +2,7 @@
 
 import { Card } from '@tremor/react';
 import { useState } from 'react';
-import { Get, Patch } from '../../lib/http';
+import { Get, Patch, Post } from '../../lib/http';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { useEffect } from 'react';
 import { SkeletonLineItem } from "../../components/skeletons/line-items"
@@ -16,7 +16,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
 
   async function GetHosts() {
     const res = await Get("/hosts/");
-    setHosts(res.response.map(n=>({value: n.name, label: n.name})));
+    setHosts(res.response.map(n => ({ value: n.name, label: n.name })));
   }
 
   async function GetHost() {
@@ -26,12 +26,12 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
   async function GetTags() {
     const res = await Get("/tags/");
     console.log(res.response)
-    setTags(res.response.map(n=>({value: n.name, label: n.name})));
+    setTags(res.response.map(n => ({ value: n.name, label: n.name })));
   }
   async function UpdateHost(data) {
     await Patch("/actions/" + params.slug, data);
   }
-  
+
   const handleScriptChange = (data, setFieldValue) => {
     setFieldValue('script', data);
   };
@@ -44,7 +44,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
   };
 
   const handleTagsChange = (data, setFieldValue) => {
-    setFieldValue('tags', data.map(n=>(n.value)));
+    setFieldValue('tags', data.map(n => (n.value)));
   };
 
   useEffect(() => {
@@ -52,11 +52,19 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
     GetHosts();
     GetTags();
   }, [])
-
+  async function execute() {
+    const res = await Post("/actions/" + params.slug + "/execute");
+    console.log(res.response)
+  }
   const stringToIntValueConverter = (value: string) => parseInt(value, 10);
   if (!host && !hosts) return <SkeletonLineItem />
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
+      <button
+        onClick={execute}
+        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+        Execute
+      </button>
       <Card className="mt-6 mb-5">
         <div>
           <Formik
@@ -97,7 +105,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Hosts</label>
                     <MultiSelect
-                      defaultValue={host?.hosts?.map(n=>({value: n.name, label: n.name}))}
+                      defaultValue={host?.hosts?.map(n => ({ value: n.name, label: n.name }))}
                       onChange={value => handleHostChange(value, setFieldValue)}
                       options={hosts}
                       className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
