@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 
 import Editor from '@monaco-editor/react';
 
-export function Monaco({onChange}) {
+export function Monaco({value, onChange}) {
   const monacoRef = useRef(null);
 
   function handleEditorWillMount(monaco) {
@@ -27,6 +27,7 @@ export function Monaco({onChange}) {
       beforeMount={handleEditorWillMount}
       onMount={handleEditorDidMount}
       onChange={onChange}
+      value={value}
     />
   );
 }

@@ -11,12 +11,23 @@ import { MultiSelect, SelectCreatable } from "../../components/components.jsx";
 
 export default function DetailPage({ params }: { params: { slug: string } }) {
   const [hosts, setHosts] = useState()
+  const [host, setHost] = useState()
+  const [tags, setTags] = useState()
+
+  async function GetHosts() {
+    const res = await Get("/hosts/");
+    setHosts(res.response.map(n=>({value: n.name, label: n.name})));
+  }
 
   async function GetHost() {
     const res = await Get("/actions/" + params.slug);
-    setHosts(res.response);
+    setHost(res.response);
   }
-
+  async function GetTags() {
+    const res = await Get("/tags/");
+    console.log(res.response)
+    setTags(res.response.map(n=>({value: n.name, label: n.name})));
+  }
   async function UpdateHost(data) {
     await Patch("/actions/" + params.slug, data);
   }
@@ -38,16 +49,18 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
 
   useEffect(() => {
     GetHost();
+    GetHosts();
+    GetTags();
   }, [])
 
   const stringToIntValueConverter = (value: string) => parseInt(value, 10);
-  if (!hosts) return <SkeletonLineItem />
+  if (!host && !hosts) return <SkeletonLineItem />
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
       <Card className="mt-6 mb-5">
         <div>
           <Formik
-            initialValues={{ name: hosts.name, script: hosts.script, port: hosts.port, username: hosts.username, password: hosts.password }}
+            initialValues={{ name: host.name, script: host.script, port: host.port, username: host.username, password: host.password }}
             validate={values => {
               const errors = {};
               if (!values.name) {
@@ -75,7 +88,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
                     <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Script</label>
                     <Monaco
                       onChange={value => handleScriptChange(value, setFieldValue)}
-                      value={hosts.script}
+                      value={host.script}
                     />
                     <ErrorMessage name="script" component="div" />
                   </div>
@@ -101,7 +114,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
                   </div>
                 </div>
 
-                <button disabled={isSubmitting} type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Create action</button>
+                <button disabled={isSubmitting} type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Save</button>
 
               </Form>
             )}
