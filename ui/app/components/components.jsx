@@ -3,11 +3,11 @@ import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import classNames from 'classnames';
 
-export function MultiSelect({options, className, onChange}) {
+export function MultiSelect({options, className, onChange, defaultValue}) {
 
    return (
         <Select
-            //defaultValue={}
+            defaultValue={defaultValue}
             onChange={onChange}
             isMulti
             name="def"
