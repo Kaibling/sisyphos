@@ -18,6 +18,9 @@ services:
       - ./ui/:/ui
       - /ui/node_modules
       - /ui/.next
+      - /ui/app
+      - /ui/pages
+      - /ui/
     command: npm run dev
     ports:
       - "5100:5100"
@@ -50,3 +53,6 @@ services:
       POSTGRES_PASSWORD: example
       POSTGRES_USER: db
       POSTGRES_DB: db
+    volumes:
+      - "./db:/db"
+

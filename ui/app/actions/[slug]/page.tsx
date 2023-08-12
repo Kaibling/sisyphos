@@ -11,12 +11,12 @@ import {SkeletonLineItem} from "../../components/skeletons/line-items"
     const [hosts, setHosts] = useState()
   
     async function GetHost() {
-      const res = await Get("/hosts/" + params.slug);
+      const res = await Get("/actions/" + params.slug);
       setHosts(res.response);
     }
     
     async function UpdateHost(data) {
-        await Patch("/hosts/" + params.slug, data);
+        await Patch("/actions/" + params.slug, data);
       }
 
     useEffect(() => {
