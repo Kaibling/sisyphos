@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.9"
 services:
 
  app:
@@ -8,8 +8,22 @@ services:
     - "./:/work"
    working_dir: "/work"
    ports:
-      - 3000:3000
-      - 5173:5173
+      - 7800:7800
+
+ ui:
+    build:
+      context: ./ui
+      target: dev
+    volumes:
+      - ./ui/:/ui
+      - /ui/node_modules
+      - /ui/.next
+    command: npm run dev
+    ports:
+      - "5100:5100"
+    environment:
+      NODE_ENV: development
+
  ssh:
    build: 
       context: .

@@ -62,9 +62,9 @@ func main() {
 	//displayRoutes(r)
 
 	//fmt.Println("listening on :3000")
-	log.Info(ctx, "listening on :3000")
+	log.Info(ctx, "listening on :7800")
 	//log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
-	err = http.ListenAndServe(":3000", r)
+	err = http.ListenAndServe(":7800", r)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
