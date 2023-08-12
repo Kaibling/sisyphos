@@ -33,7 +33,10 @@ export default function NewPage() {
   };
 
   const handleHostChange = (data, setFieldValue) => {
-    setFieldValue('hosts', data.map(n=>(n.value)));
+    setFieldValue('hosts', data.map((n, index) => ({
+      name: n.value,
+      order: index + 1
+    })));
   };
 
   const handleTagsChange = (data, setFieldValue) => {

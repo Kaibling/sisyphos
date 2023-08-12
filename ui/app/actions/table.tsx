@@ -16,23 +16,19 @@ export default function HostsTable({ hosts }: any) {
       <TableHead>
         <TableRow>
           <TableHeaderCell>Name</TableHeaderCell>
-          <TableHeaderCell>Domain</TableHeaderCell>
-          <TableHeaderCell>Datacenter</TableHeaderCell>
+          <TableHeaderCell>Tags</TableHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {hosts?.map((host) => (
           <TableRow key={host.nameid}>
-            <Link href={"/hosts/" + host.name}>
+            <Link href={"/actions/" + host.name}>
             <TableCell>{host.name}</TableCell>
             </Link>
             <TableCell>
-              <Link href={"/hosts/" + host.name}>
-              <Text>{host.name}</Text>
+              <Link href={"/actions/" + host.name}>
+              <Text>{host.tags}</Text>
               </Link>
-            </TableCell>
-            <TableCell>
-              <Text>{host.domain}</Text>
             </TableCell>
           </TableRow>
         ))}

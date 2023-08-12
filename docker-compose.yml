@@ -23,6 +23,8 @@ services:
       - "5100:5100"
     environment:
       NODE_ENV: development
+      CHOKIDAR_USEPOLLING: true
+      WATCHPACK_POLLING: true
 
  ssh:
    build: 
