@@ -54,7 +54,12 @@ export async function Patch(url: string, data: any): Promise<AxiosResponse> {
       },
     });
 
-   return render(<Toaster text="Updated successfully" />, domNode);
+   if (response.data.success){
+    render(<Toaster text="Updated successfully" />, domNode);
+    } else {
+      render(<Toaster text={response.data.response} />, domNode);
+    }
+    return response.data;
   } catch (error) {
     // Handle error here
     return render(<Toaster text={error} />, domNode);

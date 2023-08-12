@@ -4,7 +4,6 @@ import CreatableSelect from 'react-select/creatable';
 import classNames from 'classnames';
 
 export function MultiSelect({options, className, onChange, defaultValue}) {
-
    return (
         <Select
             defaultValue={defaultValue}
@@ -18,11 +17,10 @@ export function MultiSelect({options, className, onChange, defaultValue}) {
     )
 }
 
-export function SelectCreatable({options, className, onChange}) {
-
+export function SelectCreatable({options, className, onChange, defaultValue}) {
     return (
          <CreatableSelect
-             //defaultValue={}
+            defaultValue={defaultValue}
              onChange={onChange}
              isMulti
              isClearable

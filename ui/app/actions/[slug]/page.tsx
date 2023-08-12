@@ -52,11 +52,11 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
     GetHosts();
     GetTags();
   }, [])
+
   async function execute() {
-    const res = await Post("/actions/" + params.slug + "/execute");
-    console.log(res.response)
+   await Post("/actions/" + params.slug + "/execute");
   }
-  const stringToIntValueConverter = (value: string) => parseInt(value, 10);
+
   if (!host && !hosts) return <SkeletonLineItem />
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
@@ -68,7 +68,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
       <Card className="mt-6 mb-5">
         <div>
           <Formik
-            initialValues={{ name: host.name, script: host.script, hosts: host.hosts }}
+            initialValues={{ name: host.name, script: host.script, hosts: host.hosts, tags: host.tags }}
             validate={values => {
               const errors = {};
               if (!values.name) {
@@ -117,6 +117,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
                     <SelectCreatable
                       onChange={value => handleTagsChange(value, setFieldValue)}
                       options={tags}
+                      defaultValue={host?.tags?.map(n => ({ value: n, label: n }))}
                       className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                     <ErrorMessage name="tags" component="div" />
