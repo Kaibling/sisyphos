@@ -7,7 +7,9 @@ WORKDIR /ui
 
 COPY package.json package-lock.json ./
 RUN  npm install
-
+ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
 COPY . .
 EXPOSE 5100
 

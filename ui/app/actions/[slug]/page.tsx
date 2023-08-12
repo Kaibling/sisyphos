@@ -60,7 +60,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
       <Card className="mt-6 mb-5">
         <div>
           <Formik
-            initialValues={{ name: host.name, script: host.script, port: host.port, username: host.username, password: host.password }}
+            initialValues={{ name: host.name, script: host.script, hosts: host.hosts }}
             validate={values => {
               const errors = {};
               if (!values.name) {
@@ -75,7 +75,7 @@ export default function DetailPage({ params }: { params: { slug: string } }) {
               }, 400);
             }}
           >
-            {({ isSubmitting }) => (
+            {({ isSubmitting, setFieldValue }) => (
               <Form>
                 <div className="mb-6">
                   <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
