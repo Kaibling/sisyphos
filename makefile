@@ -10,3 +10,7 @@ deps:
 
 run-ui:
 	cd ui;	npm run dev -- --host 0.0.0.0
+
+start-docker:
+	docker compose down
+	docker compose up --build --remove-orphans
