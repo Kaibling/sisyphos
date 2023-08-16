@@ -10,6 +10,7 @@ tags:
   - name: hosts
   - name: tags
   - name: users
+  - name: logs
 paths:
   /actions:
     post:
@@ -774,6 +775,60 @@ paths:
                       $ref: '#/components/schemas/user'       
         '405':
           description: Invalid input
+  /logs:
+    get:
+      tags:
+        - logs
+      summary: show all logs
+      description: show all logs
+      operationId: showLogs
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/logs_list'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
+  /logs/request-id:
+    get:
+      tags:
+        - logs
+      summary: show single log
+      description: show single log
+      operationId: showLog
+      parameters:
+        - name: request-id
+          in: path
+          description: requestid of the requests, which should be shown
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/log'       
+        '405':
+          description: Invalid input
+      security:
+        - bearerAuth: []
 components:
   schemas:
     action:
@@ -944,6 +999,32 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/user'
+    log:
+      type: object
+      properties:
+        url:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        body:
+          type: string
+          example: '{"username":"name","password":"password"}'
+        method:
+          type: string
+          example: post
+        user:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        request_id:
+          type: string
+          example: 01H7DK7Y38FBC7N3CCA5M29QFH
+        created_at:
+          type: string
+          example: "2023-08-16 18:59:46.377886+00"
+    logs_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/log'
+
   securitySchemes:
     bearerAuth:
       type: http
