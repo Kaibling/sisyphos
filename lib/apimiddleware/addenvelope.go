@@ -4,7 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
+	gormrepo "sisyphos/repositories/gorm"
+	"sisyphos/services"
+
+	"gorm.io/gorm"
 )
 
 func AddEnvelope(next http.Handler) http.Handler {
@@ -16,10 +21,13 @@ func AddEnvelope(next http.Handler) http.Handler {
 			reqID = utils.NewULID().String()
 		}
 
-		env := utils.NewEnvelope()
+		db := reqctx.GetContext("db", r).(*gorm.DB)
+		lr := gormrepo.NewLogRepo(db)
+		ls := services.NewLogService(lr)
+		env := utils.NewEnvelope(ls)
 		env.RequestID = reqID
-		ctx := context.WithValue(r.Context(), "envelope", env)
-		ctx = context.WithValue(ctx, "requestid", reqID)
+		ctx := context.WithValue(r.Context(), reqctx.String("envelope"), env)
+		ctx = context.WithValue(ctx, reqctx.String("requestid"), reqID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

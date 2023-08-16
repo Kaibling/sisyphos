@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/oklog/ulid"
@@ -19,13 +18,13 @@ func NewULID() ulid.ULID {
 	return ulid.MustNew(ulid.Timestamp(t), entropy)
 }
 
-func GetContext(key string, r *http.Request) interface{} {
-	parameter := r.Context().Value(key)
-	// if parameter == nil {
-	// 	panic(apierrors.NewClientError(errors.New("context parameter '" + key + "' missing")))
-	// }
-	return parameter
-}
+// func GetContext(key reqctx.String, r *http.Request) interface{} {
+// 	parameter := r.Context().Value(key)
+// 	// if parameter == nil {
+// 	// 	panic(apierrors.NewClientError(errors.New("context parameter '" + key + "' missing")))
+// 	// }
+// 	return parameter
+// }
 
 func PrettyJSON(i interface{}) {
 	a, _ := json.MarshalIndent(i, "", " ")

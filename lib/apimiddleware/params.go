@@ -1,10 +1,13 @@
 package apimiddleware
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 
 	"sisyphos/lib/metadata"
+	"sisyphos/lib/reqctx"
 )
 
 func ReadQueryParams(next http.Handler) http.Handler {
@@ -15,7 +18,19 @@ func ReadQueryParams(next http.Handler) http.Handler {
 				md.Filter = val[0]
 			}
 		}
-		ctx := context.WithValue(r.Context(), "metadata", md)
+		ctx := context.WithValue(r.Context(), reqctx.String("metadata"), md)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func ReadBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+		ctx := context.WithValue(r.Context(), reqctx.String("bytebody"), b)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

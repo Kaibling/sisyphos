@@ -9,7 +9,7 @@ import (
 	"sisyphos/lib/apimiddleware"
 	"sisyphos/lib/config"
 	"sisyphos/lib/log"
-	"sisyphos/models"
+	"sisyphos/lib/reqctx"
 
 	gormrepo "sisyphos/repositories/gorm"
 
@@ -26,7 +26,7 @@ func main() {
 		fmt.Println("logger creation failed: ", err.Error())
 		return
 	}
-	ctx := context.WithValue(context.Background(), models.String("logger"), l)
+	ctx := context.WithValue(context.Background(), reqctx.String("logger"), l)
 	dbconfig := gormrepo.DBConfig{
 		User:     config.Config.DBUser,
 		Port:     config.Config.DBPort,
@@ -56,6 +56,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(apimiddleware.AddEnvelope)
 	r.Use(apimiddleware.ReadQueryParams)
+	r.Use(apimiddleware.ReadBody)
 
 	r.Mount("/", api.Routes())
 
@@ -70,7 +71,7 @@ func main() {
 	}
 }
 
-func injectContextData(key string, data interface{}) func(next http.Handler) http.Handler {
+func injectContextData(key reqctx.String, data interface{}) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), key, data)

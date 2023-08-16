@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 	gormrepo "sisyphos/repositories/gorm"
@@ -14,8 +15,8 @@ import (
 )
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.UserService) {
-	env := utils.GetContext("envelope", r).(*utils.Envelope)
-	userRepo := gormrepo.NewUserRepo(utils.GetContext("db", r).(*gorm.DB))
+	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
+	userRepo := gormrepo.NewUserRepo(reqctx.GetContext("db", r).(*gorm.DB))
 	userService := services.NewUserService(userRepo)
 	return env, userService
 }

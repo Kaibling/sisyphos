@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 	gormrepo "sisyphos/repositories/gorm"
@@ -16,8 +17,8 @@ import (
 )
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.TagService) {
-	env := utils.GetContext("envelope", r).(*utils.Envelope)
-	tagRepo := gormrepo.NewTagRepo(utils.GetContext("db", r).(*gorm.DB))
+	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
+	tagRepo := gormrepo.NewTagRepo(reqctx.GetContext("db", r).(*gorm.DB))
 	tagService := services.NewTagService(tagRepo)
 	return env, tagService
 }

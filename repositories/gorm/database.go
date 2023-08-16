@@ -48,6 +48,7 @@ func InitDatabase(cfg DBConfig, l *slog.Logger) (*gorm.DB, error) {
 		NewUserDBMigrator(db),
 		NewGroupDBMigrator(db),
 		NewRunDBMigrator(db),
+		NewLogDBMigrator(db),
 	}
 	err = Migrate(dbMirgators)
 	if err != nil {
@@ -71,7 +72,8 @@ type DBMigrator interface {
 	Migrate() error
 }
 type DBModel struct {
-	ID string `gorm:"primaryKey"`
+	ID        string    `gorm:"primaryKey"`
+	CreatedAt time.Time `gorm:"created_at"`
 }
 
 func (db *DBModel) BeforeCreate(tx *gorm.DB) error {

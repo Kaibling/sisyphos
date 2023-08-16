@@ -2,8 +2,13 @@ package utils
 
 import (
 	"net/http"
+	"sisyphos/lib/reqctx"
 	"time"
 )
+
+type LogService interface {
+	Log(url, body, method, user, requestID string) error
+}
 
 type Envelope struct {
 	Success        bool        `json:"success"`
@@ -13,13 +18,25 @@ type Envelope struct {
 	Error          string      `json:"error,omitempty"`
 	Message        string      `json:"message,omitempty"`
 	HTTPStatusCode int         `json:"-"`
+	LogService     LogService  `json:"-"`
 }
 
-func NewEnvelope() *Envelope {
-	return &Envelope{}
+func NewEnvelope(ls LogService) *Envelope {
+	return &Envelope{LogService: ls}
 }
 
 func (e *Envelope) Render(w http.ResponseWriter, r *http.Request) error {
+	url := r.URL.String()
+	body := string(reqctx.GetContext("bytebody", r).([]uint8))
+	method := r.Method
+	var user string
+	if u, ok := reqctx.GetContext("username", r).(string); ok {
+		user = u
+	} else {
+		user = "unauthenticated"
+	}
+	requestID := reqctx.GetContext("requestid", r).(string)
+	e.LogService.Log(url, body, method, user, requestID)
 	return nil
 }
 

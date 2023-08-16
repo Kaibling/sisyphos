@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	gormrepo "sisyphos/repositories/gorm"
 	"sisyphos/services"
@@ -16,7 +17,7 @@ import (
 
 func ValidateToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		env := utils.GetContext("envelope", r).(*utils.Envelope)
+		env := reqctx.GetContext("envelope", r).(*utils.Envelope)
 		if _, ok := r.Header["Authorization"]; !ok {
 			render.Render(w, r, env.SetError(errors.New("authorization header missing")))
 			return
@@ -30,7 +31,7 @@ func ValidateToken(next http.Handler) http.Handler {
 			render.Render(w, r, env.SetError(errors.New("authorization header invalid")))
 			return
 		}
-		db := utils.GetContext("db", r).(*gorm.DB)
+		db := reqctx.GetContext("db", r).(*gorm.DB)
 		userRepo := gormrepo.NewUserRepo(db)
 		userService := services.NewUserService(userRepo)
 		user, err := userService.ValidateToken(authSlice[1])
@@ -38,8 +39,8 @@ func ValidateToken(next http.Handler) http.Handler {
 			render.Render(w, r, env.SetError(err))
 			return
 		}
-		ctx := context.WithValue(r.Context(), "username", user.Name)
-		ctx = context.WithValue(ctx, "token", authSlice[1])
+		ctx := context.WithValue(r.Context(), reqctx.String("username"), user.Name)
+		ctx = context.WithValue(ctx, reqctx.String("token"), authSlice[1])
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

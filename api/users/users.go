@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 	gormrepo "sisyphos/repositories/gorm"
@@ -16,8 +17,8 @@ import (
 )
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.UserService) {
-	env := utils.GetContext("envelope", r).(*utils.Envelope)
-	userRepo := gormrepo.NewUserRepo(utils.GetContext("db", r).(*gorm.DB))
+	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
+	userRepo := gormrepo.NewUserRepo(reqctx.GetContext("db", r).(*gorm.DB))
 	userService := services.NewUserService(userRepo)
 	return env, userService
 }
@@ -82,10 +83,10 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, userService := prep(r)
-	permRepo := gormrepo.NewPermissionRepo(utils.GetContext("db", r).(*gorm.DB))
+	permRepo := gormrepo.NewPermissionRepo(reqctx.GetContext("db", r).(*gorm.DB))
 	permService := services.NewPermissionService(permRepo)
 	userService.AddPermissionService(permService)
-	users, err := userService.ReadAllPermission(utils.GetContext("username", r).(string))
+	users, err := userService.ReadAllPermission(reqctx.GetContext("username", r).(string))
 	// users, err := userService.ReadAll()
 	if err != nil {
 		render.Render(w, r, env.SetError(err))

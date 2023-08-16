@@ -2,8 +2,7 @@ package log
 
 import (
 	"context"
-
-	"sisyphos/models"
+	"sisyphos/lib/reqctx"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -75,7 +74,7 @@ func (l *Logger) Printf(msg string, data ...interface{}) {
 }
 
 func get(ctx context.Context) *Logger {
-	return ctx.Value(models.String("logger")).(*Logger)
+	return ctx.Value(reqctx.String("logger")).(*Logger)
 }
 
 func (l *Logger) debug(ctx context.Context, msg string, fields ...Field) {

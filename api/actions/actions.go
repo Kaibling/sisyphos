@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"sisyphos/lib/metadata"
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 	gormrepo "sisyphos/repositories/gorm"
@@ -16,8 +17,8 @@ import (
 )
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.ActionService) {
-	env := utils.GetContext("envelope", r).(*utils.Envelope)
-	actionRepo := gormrepo.NewActionRepo(utils.GetContext("db", r).(*gorm.DB))
+	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
+	actionRepo := gormrepo.NewActionRepo(reqctx.GetContext("db", r).(*gorm.DB))
 	actionService := services.NewActionService(actionRepo)
 	return env, actionService
 }
@@ -68,10 +69,10 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
-	md := utils.GetContext("metadata", r).(metadata.MetaData)
+	md := reqctx.GetContext("metadata", r).(metadata.MetaData)
 	var actions []models.Action
 	var err error
-	db := utils.GetContext("db", r).(*gorm.DB)
+	db := reqctx.GetContext("db", r).(*gorm.DB)
 	if md.Filter != "" {
 		// TODO clean up. no db here
 		f := gormrepo.NewFilter(db, "actions")
@@ -80,7 +81,7 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 		permRepo := gormrepo.NewPermissionRepo(db)
 		permService := services.NewPermissionService(permRepo)
 		actionService.AddPermissionService(permService)
-		username := utils.GetContext("username", r).(string)
+		username := reqctx.GetContext("username", r).(string)
 		actions, err = actionService.ReadAllExtendedPermission(username)
 	}
 	if err != nil {
@@ -102,14 +103,14 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runRepo := gormrepo.NewRunRepo(
-		utils.GetContext("db", r).(*gorm.DB),
-		utils.GetContext("requestid", r).(string),
-		utils.GetContext("username", r).(string),
+		reqctx.GetContext("db", r).(*gorm.DB),
+		reqctx.GetContext("requestid", r).(string),
+		reqctx.GetContext("username", r).(string),
 	)
 	runService := services.NewRunService(runRepo)
 	actionService.AddRunService(runService)
 	hostRepo := gormrepo.NewHostRepo(
-		utils.GetContext("db", r).(*gorm.DB),
+		reqctx.GetContext("db", r).(*gorm.DB),
 	)
 	hostService := services.NewHostService(hostRepo)
 	actionService.AddHostService(hostService)
