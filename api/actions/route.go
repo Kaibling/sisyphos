@@ -16,7 +16,7 @@ func AddRoutes() chi.Router {
 		r.Delete("/{name}", Delete)
 		r.Patch("/{name}", Update)
 		r.Post("/{name}/execute", Execute)
-		r.Post("/{name}/runs", readRuns)
+		r.Get("/{name}/runs", readRuns)
 	})
 	return r
 }

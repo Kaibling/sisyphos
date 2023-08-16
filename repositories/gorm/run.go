@@ -49,7 +49,7 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = r.getDB().Omit("ActionRef.*").Omit().Omit("HostRef").Create(&run).Error
+		err = r.getDB().Omit("ActionRef.*").Omit("HostRef").Create(&run).Error
 		if err != nil {
 			return nil, err
 		}

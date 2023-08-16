@@ -273,7 +273,7 @@ func (r *ActionRepo) GetID(name string) (string, error) {
 
 func (r *ActionRepo) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	var a []Run
-	err := r.getDB().Model(&Run{}).Joins("JOIN actions on runs.action_id = actions.id").Where("actions.name = ?", actionname.(string)).Find(&a).Error
+	err := r.getDB().Model(&Run{}).Preload("Action").Preload("Host").Joins("JOIN actions on runs.action_id = actions.id").Where("actions.name = ?", actionname.(string)).Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
