@@ -11,7 +11,6 @@ import (
 
 type Run struct {
 	DBModel
-	RunID     string
 	RequestID string
 	ParentID  string
 	User      string
@@ -49,11 +48,11 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = r.getDB().Omit("ActionRef.*").Omit("HostRef").Create(&run).Error
+		err = r.getDB().Omit("Action").Omit("Host").Create(&run).Error
 		if err != nil {
 			return nil, err
 		}
-		newRun, err := r.ReadByRunID(run.RunID)
+		newRun, err := r.ReadByID(run.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -62,9 +61,9 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 	return resp, nil
 }
 
-func (r *RunRepo) ReadByRunID(runid interface{}) (*models.Run, error) {
+func (r *RunRepo) ReadByID(id interface{}) (*models.Run, error) {
 	var a Run
-	err := r.db.Model(&Run{}).Where(&Run{RunID: runid.(string)}).Preload("Action").Preload("Host").First(&a).Error
+	err := r.db.Model(&Run{}).Where(&Run{DBModel: DBModel{ID: id.(string)}}).Preload("Action").Preload("Host").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (r *RunRepo) GetUsername() string {
 
 func (r *RunRepo) ReadAll() ([]models.Run, error) {
 	var a []Run
-	err := r.db.Model(&Run{}).Preload("HostRef").Preload("ActionRef").Find(&a).Error
+	err := r.db.Model(&Run{}).Preload("Host").Preload("Action").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +111,7 @@ func MarshalRun(a models.Run, db *gorm.DB) (*Run, error) {
 		hostID = &hID
 	}
 	return &Run{
-		RunID:     a.RunID,
+		DBModel:   DBModel{ID: a.ID},
 		RequestID: a.RequestID,
 		ParentID:  a.ParentID,
 		HostID:    hostID,
@@ -129,7 +128,7 @@ func MarshalRun(a models.Run, db *gorm.DB) (*Run, error) {
 
 func UnmarshalRun(a Run) models.Run {
 	return models.Run{
-		RunID:     a.RunID,
+		ID:        a.ID,
 		RequestID: a.RequestID,
 		ParentID:  a.ParentID,
 		User:      a.User,

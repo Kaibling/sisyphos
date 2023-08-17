@@ -159,6 +159,39 @@ paths:
           description: general error
       security:
         - bearerAuth: []
+  /actions/{name}/runs:
+    get:
+      tags:
+        - actions
+      summary: returns the history of all runs of an existing action
+      description: returns the history of all runs of an existing action
+      operationId: readActionRuns
+      parameters:
+        - name: name
+          in: path
+          description: name of the action for searching
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/envelope'
+                - type: object
+                  properties:
+                    response:
+                      $ref: '#/components/schemas/runs_list'
+        '404':
+          description: action not found
+        '500':
+          description: general error
+      security:
+        - bearerAuth: []
   /groups:
     post:
       tags:
@@ -1024,7 +1057,50 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/log'
-
+    run:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 01H7DK7Y38FBC7N3CCA5M29QFH
+        request_id:
+          type: string
+          example: 01H7DK7Y38FBC7N3CCA5M29QFH
+        user:
+          type: string
+          example: xXx_360noSc0pe69_xXx
+        start_date:
+          type: string
+          example: "2023-08-16 18:59:46.377886+00"
+        end_date:
+          type: string
+          example: "2023-08-16 18:60:46.377886+00"
+        duration:
+          type: string
+          example: "12.23ms"
+        output:
+          type: string
+          example: "server updated"
+        error:
+          type: string
+          example: "could not find binary"
+        status:
+          type: string
+          example: "success"
+        action:
+          type: string
+          example: actionname
+        host:
+          type: string
+          example: app1-db1.local
+        childs:
+          type: array
+          items:
+            $ref: '#/components/schemas/run'
+    runs_list:
+      type: array
+      items:
+        $ref: '#/components/schemas/run'
   securitySchemes:
     bearerAuth:
       type: http

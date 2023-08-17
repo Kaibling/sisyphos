@@ -1,18 +1,18 @@
 package models
 
 import (
-	"time"
-
 	"sisyphos/lib/utils"
+	"time"
 )
 
 type Run struct {
+	ID        string    `json:"id"`
 	Action    string    `json:"action"`
 	Host      *string   `json:"host"`
 	RequestID string    `json:"request_id"`
-	ParentID  string    `json:"parent_id"`
+	ParentID  string    `json:"parent_id,omitempty"`
+	Childs    []*Run    `json:"childs,omitempty"`
 	User      string    `json:"user"`
-	RunID     string    `json:"run_id"`
 	StartTime time.Time `json:"start_date"`
 	EndTime   time.Time `json:"end_date"`
 	Duration  string    `json:"duration"`
@@ -25,7 +25,7 @@ func NewRun(actionName, username, reqID, parentID string) *Run {
 	return &Run{
 		Action:    actionName,
 		StartTime: time.Now(),
-		RunID:     utils.NewULID().String(),
+		ID:        utils.NewULID().String(),
 		User:      username,
 		RequestID: reqID,
 		ParentID:  parentID,

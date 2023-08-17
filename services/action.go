@@ -63,7 +63,66 @@ func (s *ActionService) ReadByName(name interface{}) (*models.Action, error) {
 }
 
 func (s *ActionService) ReadRuns(actionname interface{}) ([]models.Run, error) {
-	return s.repo.ReadRuns(actionname)
+	runs, err := s.repo.ReadRuns(actionname)
+	if err != nil {
+		return nil, err
+	}
+	n := sortRunsChild(runs)
+	return n, nil
+
+}
+
+func sortRunsChild(runs []models.Run) []models.Run {
+	t := map[string]*models.Run{}
+	for _, r := range runs {
+		r := r
+		t[r.ID] = &r
+	}
+	utils.PrettyJSON(t)
+	topLevel := []models.Run{}
+	tmp := map[string]struct{}{}
+
+	for _, a := range t {
+		if a.ParentID != "" {
+			tmp[a.ID] = struct{}{}
+		}
+	}
+
+	loopbreak := 0
+	for len(tmp) > 0 {
+		for id := range tmp {
+			child, ok := t[id]
+			if !ok {
+				fmt.Printf("child %s not found\n", id)
+			}
+			parent, ok := t[child.ParentID]
+			if !ok {
+				fmt.Printf("parent %s not found\n", child.ParentID)
+				delete(tmp, id)
+				continue
+			}
+			utils.PrettyJSON(parent)
+			if parent.Childs == nil {
+				parent.Childs = []*models.Run{}
+			}
+			parent.Childs = append(parent.Childs, child)
+			delete(tmp, id)
+		}
+		loopbreak++
+		if loopbreak > 10 {
+			fmt.Println("broke")
+			break
+		}
+	}
+
+	// cleanup
+	for _, u := range t {
+		if u.ParentID == "" {
+			topLevel = append(topLevel, *u)
+		}
+	}
+
+	return topLevel
 }
 
 func (s *ActionService) ReadAllExtendedPermission(username string) ([]models.Action, error) {
@@ -109,14 +168,14 @@ func (s *ActionService) InitRun(r *models.Action) ([]models.Run, error) {
 }
 
 func (s *ActionService) run(r *models.Action, parentID string) error {
-	fmt.Printf("Start run %s pid:%s\n", utils.PtrRead(r.Name), parentID)
+
 	execLog := models.NewRun(utils.PtrRead(r.Name),
 		s.runLogService.repo.GetUsername(),
 		s.runLogService.repo.GetRequestID(),
 		parentID,
 	)
 	execLog.Status = apperrors.ScriptRunSuccess
-
+	fmt.Printf("Start run %s pid:%s:execlog: %s\n", utils.PtrRead(r.Name), parentID, execLog.ID)
 	for _, tr := range r.Actions {
 		t, err := s.ReadByName(tr.Name)
 		if err != nil {
@@ -130,7 +189,7 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 		if len(t.Hosts) == 0 {
 			t.Hosts = r.Hosts
 		}
-		rerr := s.run(t, execLog.RunID)
+		rerr := s.run(t, execLog.ID)
 		if t.Variables["failonerrors"].(bool) && rerr != nil {
 			e := fmt.Errorf("script '%s' failed: %w", utils.PtrRead(r.Name), err)
 			execLog.Error = e.Error()
@@ -155,7 +214,7 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 			hostExecLog := models.NewRun(*r.Name,
 				s.runLogService.repo.GetUsername(),
 				s.runLogService.repo.GetRequestID(),
-				execLog.RequestID)
+				execLog.ID)
 			hostExecLog.Host = &connection.Name
 
 			sshc := ssh.NewSSHConnector()

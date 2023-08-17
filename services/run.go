@@ -6,7 +6,7 @@ import (
 
 type runRepo interface {
 	Create(runs []models.Run) ([]models.Run, error)
-	ReadByRunID(runID interface{}) (*models.Run, error)
+	ReadByID(runID interface{}) (*models.Run, error)
 	ReadByReqID(reqID interface{}) ([]models.Run, error)
 	ReadAll() ([]models.Run, error)
 	GetRequestID() string
@@ -25,8 +25,8 @@ func (s *RunService) Create(model *models.Run) ([]models.Run, error) {
 	return s.repo.Create([]models.Run{*model})
 }
 
-func (s *RunService) ReadByRunID(runID interface{}) (*models.Run, error) {
-	return s.repo.ReadByRunID(runID)
+func (s *RunService) ReadByID(runID interface{}) (*models.Run, error) {
+	return s.repo.ReadByID(runID)
 }
 
 func (s *RunService) ReadByReqID() ([]models.Run, error) {
