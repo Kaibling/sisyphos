@@ -296,6 +296,13 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	}()
 
 	if uAction.OrderedActions != nil {
+		// delete all
+		err := tx.Exec("delete from actions_actions where action_id = ?", uAction.ID).Error
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		// add remaining
 		for _, conn := range uAction.OrderedActions {
 			actionRepo := NewActionRepo(tx)
 			actionID, err := actionRepo.GetID(conn.Name)
@@ -305,6 +312,10 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 			}
 			aa := ActionsActions{ActionsRefID: actionID, ActionID: uAction.ID, Order: conn.Order}
 			err = tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "action__ref_id"},
+					{Name: "action_id"},
+				},
 				DoUpdates: clause.Assignments(map[string]interface{}{"order": conn.Order}),
 			}).Model(&ActionsActions{}).Create(&aa).Error
 			if err != nil {
@@ -320,8 +331,15 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 		}
 	}
 	if uAction.OrderedHosts != nil {
+		// delete all
+		err := tx.Exec("delete from actions_hosts where action_id = ?", uAction.ID).Error
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		// add remaining
+		hostRepo := NewHostRepo(tx)
 		for _, conn := range uAction.OrderedHosts {
-			hostRepo := NewHostRepo(tx)
 			hostID, err := hostRepo.GetID(conn.Name)
 			if err != nil {
 				tx.Rollback()
@@ -329,8 +347,13 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 			}
 			ah := ActionsHosts{HostID: hostID, ActionID: uAction.ID, Order: conn.Order}
 			err = tx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "host_id"},
+					{Name: "action_id"},
+				},
 				DoUpdates: clause.Assignments(map[string]interface{}{"order": conn.Order}),
 			}).Model(&ActionsHosts{}).Create(&ah).Error
+
 			if err != nil {
 				tx.Rollback()
 				return nil, err
