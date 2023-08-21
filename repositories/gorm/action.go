@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -58,7 +59,18 @@ func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 		tagRepo := NewTagRepo(tx)
 		tid, err := tagRepo.GetID(t)
 		if err != nil {
-			return err
+			if strings.Contains(err.Error(), "not found") {
+				nt, err := tagRepo.Create([]models.Tag{{Name: t}})
+				if err != nil {
+					return err
+				}
+				tid, err = tagRepo.GetID(nt[0].Name)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 		tags = append(tags, Tag{DBModel: DBModel{ID: tid}})
 	}
@@ -129,7 +141,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 		if action.Variables == nil {
 			action.Variables.UnmarshalJSON([]byte("{}"))
 		}
-		err := tx.Omit("HostsRef").Omit("ActionsRef").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
+		err := tx.Omit("HostsRef.*").Omit("ActionsRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -326,6 +338,13 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	}
 	if uAction.Groups != nil {
 		if err := tx.Model(&uAction).Association("GroupsRef").Replace(uAction.GroupsRef); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	if uAction.Tags != nil {
+		if err := tx.Model(&uAction).Association("TagsRef").Replace(uAction.TagsRef); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
