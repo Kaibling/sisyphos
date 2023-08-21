@@ -22,8 +22,10 @@ type Group struct {
 }
 
 func (g *Group) BeforeSave(tx *gorm.DB) (err error) {
+	ctx := tx.Statement.Context
+	username := ctx.Value("username").(string)
 	if len(g.Users) > 0 {
-		userRepo := NewUserRepo(tx)
+		userRepo := NewUserRepo(tx, username)
 		users := []User{}
 		for _, u := range g.Users {
 			userID, err := userRepo.GetID(u)
@@ -41,7 +43,7 @@ func (g *Group) BeforeSave(tx *gorm.DB) (err error) {
 	}
 
 	if len(g.Allows) > 0 {
-		actionRepo := NewActionRepo(tx)
+		actionRepo := NewActionRepo(tx, username)
 		actions := []Action{}
 		for _, u := range g.Allows {
 			actionID, err := actionRepo.GetID(u)
@@ -71,11 +73,12 @@ func (g *Group) AfterFind(tx *gorm.DB) (err error) {
 }
 
 type GroupRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewGroupRepo(db *gorm.DB) *GroupRepo {
-	return &GroupRepo{db}
+func NewGroupRepo(db *gorm.DB, username string) *GroupRepo {
+	return &GroupRepo{db, username}
 }
 
 func (r *GroupRepo) getDB() *gorm.DB {
@@ -173,6 +176,7 @@ func UnmarshalGroup(a Group) models.Group {
 		a.Users = []string{}
 	}
 	return models.Group{
+		DBInfo:      models.DBInfo(a.DBModel),
 		Name:        a.Name,
 		Allows:      a.Allows,
 		Users:       a.Users,
@@ -208,7 +212,7 @@ func (s GroupDBMigrator) Migrate() error {
 	}
 	var adminGroup Group
 	if err := s.db.Model(&Group{Name: utils.ToPointer("Admin")}).First(&adminGroup).Error; err != nil {
-		repo := NewGroupRepo(s.db)
+		repo := NewGroupRepo(s.db, "migrator")
 		if _, err := repo.Create([]models.Group{
 			{
 				Name:  utils.ToPointer("admin"),

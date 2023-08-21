@@ -18,7 +18,7 @@ import (
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.UserService) {
 	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
-	userRepo := gormrepo.NewUserRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	userRepo := gormrepo.NewUserRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	userService := services.NewUserService(userRepo)
 	return env, userService
 }
@@ -83,7 +83,7 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, userService := prep(r)
-	permRepo := gormrepo.NewPermissionRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	permRepo := gormrepo.NewPermissionRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	permService := services.NewPermissionService(permRepo)
 	userService.AddPermissionService(permService)
 	users, err := userService.ReadAllPermission(reqctx.GetContext("username", r).(string))

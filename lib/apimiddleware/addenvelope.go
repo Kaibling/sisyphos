@@ -22,7 +22,11 @@ func AddEnvelope(next http.Handler) http.Handler {
 		}
 
 		db := reqctx.GetContext("db", r).(*gorm.DB)
-		lr := gormrepo.NewLogRepo(db)
+		username, ok := reqctx.GetContext("username", r).(string)
+		if !ok {
+			username = "unauthenticated"
+		}
+		lr := gormrepo.NewLogRepo(db, username)
 		ls := services.NewLogService(lr)
 		env := utils.NewEnvelope(ls)
 		env.RequestID = reqID

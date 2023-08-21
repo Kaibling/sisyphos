@@ -18,7 +18,7 @@ import (
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.GroupService) {
 	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
-	groupRepo := gormrepo.NewGroupRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	groupRepo := gormrepo.NewGroupRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	groupService := services.NewGroupService(groupRepo)
 	return env, groupService
 }

@@ -15,11 +15,12 @@ type Tag struct {
 }
 
 type TagRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewTagRepo(db *gorm.DB) *TagRepo {
-	return &TagRepo{db}
+func NewTagRepo(db *gorm.DB, username string) *TagRepo {
+	return &TagRepo{db, username}
 }
 
 func (r *TagRepo) getDB() *gorm.DB {
@@ -79,6 +80,7 @@ func (r *TagRepo) ReadAll() ([]models.Tag, error) {
 
 func MarshalTag(a models.Tag) Tag {
 	return Tag{
+		DBModel:     DBModel(a.DBInfo),
 		Name:        a.Name,
 		Description: a.Description,
 	}
@@ -86,6 +88,7 @@ func MarshalTag(a models.Tag) Tag {
 
 func UnmarshalTag(a Tag) models.Tag {
 	return models.Tag{
+		DBInfo:      models.DBInfo(a.DBModel),
 		Name:        a.Name,
 		Description: a.Description,
 	}

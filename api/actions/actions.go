@@ -18,7 +18,7 @@ import (
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.ActionService) {
 	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
-	actionRepo := gormrepo.NewActionRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	actionRepo := gormrepo.NewActionRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	actionService := services.NewActionService(actionRepo)
 	return env, actionService
 }
@@ -78,10 +78,11 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 		f := gormrepo.NewFilter(db, "actions")
 		actions, err = actionService.ReadAllFiltered(md, f)
 	} else {
-		permRepo := gormrepo.NewPermissionRepo(db)
+		username := reqctx.GetContext("username", r).(string)
+		permRepo := gormrepo.NewPermissionRepo(db, username)
 		permService := services.NewPermissionService(permRepo)
 		actionService.AddPermissionService(permService)
-		username := reqctx.GetContext("username", r).(string)
+
 		actions, err = actionService.ReadAllExtendedPermission(username)
 	}
 	if err != nil {
@@ -111,6 +112,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	actionService.AddRunService(runService)
 	hostRepo := gormrepo.NewHostRepo(
 		reqctx.GetContext("db", r).(*gorm.DB),
+		reqctx.GetContext("username", r).(string),
 	)
 	hostService := services.NewHostService(hostRepo)
 	actionService.AddHostService(hostService)

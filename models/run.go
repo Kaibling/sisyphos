@@ -6,6 +6,10 @@ import (
 )
 
 type Run struct {
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy string    `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy string    `json:"updated_by"`
 	ID        string    `json:"id"`
 	Action    string    `json:"action"`
 	Host      *string   `json:"host"`

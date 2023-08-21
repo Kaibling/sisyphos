@@ -23,9 +23,11 @@ type Host struct {
 }
 
 func (h *Host) BeforeSave(tx *gorm.DB) (err error) {
+	ctx := tx.Statement.Context
+	username := ctx.Value("username").(string)
 	hosts := []Tag{}
 	for _, t := range h.Tags {
-		hostRepo := NewTagRepo(tx)
+		hostRepo := NewTagRepo(tx, username)
 		tid, err := hostRepo.GetID(t)
 		if err != nil {
 			return err
@@ -46,11 +48,12 @@ func (h *Host) AfterFind(tx *gorm.DB) (err error) {
 }
 
 type HostRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewHostRepo(db *gorm.DB) *HostRepo {
-	return &HostRepo{db}
+func NewHostRepo(db *gorm.DB, username string) *HostRepo {
+	return &HostRepo{db, username}
 }
 
 func (r *HostRepo) getDB() *gorm.DB {
@@ -128,6 +131,7 @@ func (r *HostRepo) ReadAll() ([]models.Host, error) {
 
 func MarshalHost(a models.Host) Host {
 	return Host{
+		DBModel:  DBModel(a.DBInfo),
 		Name:     a.Name,
 		User:     a.Username,
 		Password: a.Password,
@@ -144,6 +148,7 @@ func UnmarshalHost(a Host) models.Host {
 		a.Tags = []string{}
 	}
 	return models.Host{
+		DBInfo:   models.DBInfo(a.DBModel),
 		Name:     a.Name,
 		Username: a.User,
 		Password: a.Password,

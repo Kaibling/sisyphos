@@ -74,6 +74,9 @@ type DBMigrator interface {
 type DBModel struct {
 	ID        string    `gorm:"primaryKey"`
 	CreatedAt time.Time `gorm:"created_at"`
+	CreatedBy string    `gorm:"created_by"`
+	UpdatedAt time.Time `gorm:"updated_at"`
+	UpdatedBy string    `gorm:"updated_by"`
 }
 
 func (db *DBModel) BeforeCreate(tx *gorm.DB) error {

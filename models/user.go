@@ -3,6 +3,7 @@ package models
 import "errors"
 
 type User struct {
+	DBInfo
 	Name     string   `json:"name"`
 	Password string   `json:"password,omitempty"`
 	Token    []string `json:"token"`

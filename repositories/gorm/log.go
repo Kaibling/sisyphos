@@ -17,11 +17,12 @@ type Log struct {
 }
 
 type LogRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewLogRepo(db *gorm.DB) *LogRepo {
-	return &LogRepo{db}
+func NewLogRepo(db *gorm.DB, username string) *LogRepo {
+	return &LogRepo{db, username}
 }
 
 func (r *LogRepo) getDB() *gorm.DB {

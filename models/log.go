@@ -3,6 +3,7 @@ package models
 import "time"
 
 type Log struct {
+	DBInfo
 	Url       string    `json:"name"`
 	Body      string    `json:"body"`
 	Method    string    `json:"metoh"`

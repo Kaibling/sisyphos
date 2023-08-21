@@ -99,12 +99,14 @@ func (r *RunRepo) ReadAll() ([]models.Run, error) {
 }
 
 func MarshalRun(a models.Run, db *gorm.DB) (*Run, error) {
-	actionRepo := NewActionRepo(db)
+	ctx := db.Statement.Context
+	username := ctx.Value("username").(string)
+	actionRepo := NewActionRepo(db, username)
 	actionID, err := actionRepo.GetID(a.Action)
 	if err != nil {
 		return nil, err
 	}
-	hostRepo := NewHostRepo(db)
+	hostRepo := NewHostRepo(db, username)
 	hID, err := hostRepo.GetID(utils.PtrRead(a.Host))
 	var hostID *string
 	if err == nil {

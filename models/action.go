@@ -3,9 +3,11 @@ package models
 import (
 	"errors"
 	"sisyphos/lib/utils"
+	"time"
 )
 
 type Action struct {
+	DBInfo
 	Name         *string                `json:"name"`
 	Groups       []string               `json:"groups"`
 	Script       *string                `json:"script"`
@@ -29,6 +31,12 @@ func (a *Action) Default() {
 	}
 	if a.Variables == nil {
 		a.Variables = map[string]any{}
+	}
+	if a.CreatedAt.IsZero() {
+		a.CreatedAt = time.Now()
+	}
+	if a.UpdatedAt.IsZero() {
+		a.UpdatedAt = time.Now()
 	}
 }
 

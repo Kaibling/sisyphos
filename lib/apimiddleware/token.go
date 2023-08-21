@@ -32,7 +32,7 @@ func ValidateToken(next http.Handler) http.Handler {
 			return
 		}
 		db := reqctx.GetContext("db", r).(*gorm.DB)
-		userRepo := gormrepo.NewUserRepo(db)
+		userRepo := gormrepo.NewUserRepo(db, "unauthenticated")
 		userService := services.NewUserService(userRepo)
 		user, err := userService.ValidateToken(authSlice[1])
 		if err != nil {

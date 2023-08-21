@@ -21,11 +21,12 @@ type Token struct {
 }
 
 type TokenRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewTokenRepo(db *gorm.DB) *TokenRepo {
-	return &TokenRepo{db}
+func NewTokenRepo(db *gorm.DB, username string) *TokenRepo {
+	return &TokenRepo{db, username}
 }
 
 func (r *TokenRepo) getDB() *gorm.DB {
@@ -84,6 +85,7 @@ func (r *TokenRepo) ReadAll() ([]models.Token, error) {
 
 func MarshalToken(a models.Token) Token {
 	return Token{
+		DBModel: DBModel(a.DBInfo),
 		Expires: a.Expires,
 		Token:   a.Token,
 	}
@@ -91,6 +93,7 @@ func MarshalToken(a models.Token) Token {
 
 func UnmarshalToken(a Token) models.Token {
 	return models.Token{
+		DBInfo:  models.DBInfo(a.DBModel),
 		Token:   a.Token,
 		Expires: a.Expires,
 	}

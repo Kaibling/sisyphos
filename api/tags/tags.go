@@ -18,7 +18,7 @@ import (
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.TagService) {
 	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
-	tagRepo := gormrepo.NewTagRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	tagRepo := gormrepo.NewTagRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	tagService := services.NewTagService(tagRepo)
 	return env, tagService
 }

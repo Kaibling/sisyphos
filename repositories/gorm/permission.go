@@ -10,11 +10,12 @@ import (
 )
 
 type PermissionRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewPermissionRepo(db *gorm.DB) *PermissionRepo {
-	return &PermissionRepo{db}
+func NewPermissionRepo(db *gorm.DB, username string) *PermissionRepo {
+	return &PermissionRepo{db, username}
 }
 
 func (r *PermissionRepo) getDB() *gorm.DB {

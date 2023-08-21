@@ -24,9 +24,11 @@ type User struct {
 }
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {
+	ctx := tx.Statement.Context
+	username := ctx.Value("username").(string)
 	groups := []Group{}
 	for _, g := range u.Groups {
-		groupRepo := NewGroupRepo(tx)
+		groupRepo := NewGroupRepo(tx, username)
 		gid, err := groupRepo.GetID(g)
 		if err != nil {
 			return err
@@ -48,11 +50,12 @@ func (u *User) AfterFind(tx *gorm.DB) (err error) {
 }
 
 type UserRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewUserRepo(db *gorm.DB) *UserRepo {
-	return &UserRepo{db}
+func NewUserRepo(db *gorm.DB, username string) *UserRepo {
+	return &UserRepo{db, username}
 }
 
 func (r *UserRepo) getDB() *gorm.DB {
@@ -125,7 +128,7 @@ func (r *UserRepo) Authenticate(auth models.Authentication) (*models.User, error
 	if !utils.CheckPasswordHash(auth.Password, u.PasswordHash) {
 		return nil, fmt.Errorf("username/password incorrect")
 	}
-	tr := NewTokenRepo(r.db)
+	tr := NewTokenRepo(r.db, r.username)
 	newToken, err := tr.Create(u.ID)
 	if err != nil {
 		return nil, err
@@ -161,6 +164,7 @@ func (r *UserRepo) ValidateToken(token string) (*models.User, error) {
 
 func MarshalUser(a models.User) User {
 	return User{
+		DBModel:      DBModel(a.DBInfo),
 		Name:         a.Name,
 		PasswordHash: a.Password,
 		Groups:       a.Groups,
@@ -172,6 +176,7 @@ func UnmarshalUser(a User) *models.User {
 		a.Token = []string{}
 	}
 	return &models.User{
+		DBInfo: models.DBInfo(a.DBModel),
 		Name:   a.Name,
 		Token:  a.Token,
 		Groups: a.Groups,
@@ -212,7 +217,7 @@ func (s UserDBMigrator) Migrate() error {
 			pwd = config.Config.AdminPassword
 		}
 
-		userRepo := NewUserRepo(s.db)
+		userRepo := NewUserRepo(s.db, "migrator")
 		if _, err := userRepo.Create([]models.User{{Name: "admin", Password: pwd}}); err != nil {
 			return fmt.Errorf("creating of user Admin failed: %w", err)
 		}

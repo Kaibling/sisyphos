@@ -32,9 +32,11 @@ type Action struct {
 }
 
 func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
+	ctx := tx.Statement.Context
+	username := ctx.Value("username").(string)
 	triggers := []Action{}
 	for _, t := range a.Actions {
-		actionRepo := NewActionRepo(tx)
+		actionRepo := NewActionRepo(tx, username)
 		tid, err := actionRepo.GetID(t)
 		if err != nil {
 			return err
@@ -45,7 +47,7 @@ func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 
 	groups := []Group{}
 	for _, g := range a.Groups {
-		groupRepo := NewGroupRepo(tx)
+		groupRepo := NewGroupRepo(tx, username)
 		gid, err := groupRepo.GetID(g)
 		if err != nil {
 			return err
@@ -56,7 +58,7 @@ func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 
 	tags := []Tag{}
 	for _, t := range a.Tags {
-		tagRepo := NewTagRepo(tx)
+		tagRepo := NewTagRepo(tx, username)
 		tid, err := tagRepo.GetID(t)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
@@ -112,11 +114,12 @@ type ActionsActions struct {
 }
 
 type ActionRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	username string
 }
 
-func NewActionRepo(db *gorm.DB) *ActionRepo {
-	return &ActionRepo{db}
+func NewActionRepo(db *gorm.DB, username string) *ActionRepo {
+	return &ActionRepo{db, username}
 }
 
 func (r *ActionRepo) getDB() *gorm.DB {
@@ -147,7 +150,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 			return nil, err
 		}
 		for _, c := range action.OrderedHosts {
-			hostRepo := NewHostRepo(tx)
+			hostRepo := NewHostRepo(tx, r.username)
 			hostID, err := hostRepo.GetID(utils.PtrRead(&c.Name))
 			if err != nil {
 				tx.Rollback()
@@ -167,7 +170,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 		}
 
 		for _, a := range action.OrderedActions {
-			actionRepo := NewActionRepo(tx)
+			actionRepo := NewActionRepo(tx, r.username)
 			actionID, err := actionRepo.GetID(a.Name)
 			if err != nil {
 				tx.Rollback()
@@ -316,7 +319,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 		}
 		// add remaining
 		for _, conn := range uAction.OrderedActions {
-			actionRepo := NewActionRepo(tx)
+			actionRepo := NewActionRepo(tx, r.username)
 			actionID, err := actionRepo.GetID(conn.Name)
 			if err != nil {
 				tx.Rollback()
@@ -357,7 +360,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 			return nil, err
 		}
 		// add remaining
-		hostRepo := NewHostRepo(tx)
+		hostRepo := NewHostRepo(tx, r.username)
 		for _, conn := range uAction.OrderedHosts {
 			hostID, err := hostRepo.GetID(conn.Name)
 			if err != nil {
@@ -408,6 +411,7 @@ func MarshalAction(a models.Action) Action {
 	}
 
 	return Action{
+		DBModel:        DBModel(a.DBInfo),
 		Name:           a.Name,
 		Script:         a.Script,
 		Groups:         a.Groups,
@@ -438,6 +442,7 @@ func UnmarshalAction(a Action) models.Action {
 	}
 
 	return models.Action{
+		DBInfo:       models.DBInfo(a.DBModel),
 		Name:         a.Name,
 		Script:       a.Script,
 		Actions:      a.OrderedActions,

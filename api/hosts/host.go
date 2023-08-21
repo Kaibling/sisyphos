@@ -18,7 +18,7 @@ import (
 
 var prep = func(r *http.Request) (*utils.Envelope, *services.HostService) {
 	env := reqctx.GetContext("envelope", r).(*utils.Envelope)
-	hostRepo := gormrepo.NewHostRepo(reqctx.GetContext("db", r).(*gorm.DB))
+	hostRepo := gormrepo.NewHostRepo(reqctx.GetContext("db", r).(*gorm.DB), reqctx.GetContext("username", r).(string))
 	hostService := services.NewHostService(hostRepo)
 	return env, hostService
 }
