@@ -27,6 +27,9 @@ func (a *Action) Default() {
 	if a.FailOnErrors == nil {
 		a.FailOnErrors = utils.ToPointer(true)
 	}
+	if a.Variables == nil {
+		a.Variables = map[string]any{}
+	}
 }
 
 type OrderdAction struct {

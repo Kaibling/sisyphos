@@ -78,7 +78,6 @@ func sortRunsChild(runs []models.Run) []models.Run {
 		r := r
 		t[r.ID] = &r
 	}
-	utils.PrettyJSON(t)
 	topLevel := []models.Run{}
 	tmp := map[string]struct{}{}
 

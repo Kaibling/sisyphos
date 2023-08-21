@@ -421,17 +421,18 @@ func MarshalAction(a models.Action) Action {
 }
 
 func UnmarshalAction(a Action) models.Action {
-	v := map[string]interface{}{}
-	// if a.Variables.String() != "null" {
+	v := map[string]any{}
 	byteVar, err := a.Variables.MarshalJSON()
 	if err != nil {
+		// TODO error handling
 		fmt.Println(err.Error())
 	}
-	err = json.Unmarshal(byteVar, &v)
+	aa := map[string]any{}
+	err = json.Unmarshal(byteVar, &aa)
 	if err != nil {
+		// TODO error handling
 		fmt.Println(err.Error())
 	}
-	// }
 	if len(a.Tags) == 0 {
 		a.Tags = []string{}
 	}
