@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"sisyphos/lib/reqctx"
 
 	"go.uber.org/zap"
@@ -111,4 +112,18 @@ func Warn(ctx context.Context, msg string, fields ...Field) {
 
 func Error(ctx context.Context, err error, fields ...Field) {
 	get(ctx).error(ctx, err.Error(), fields...)
+}
+
+func (l *Logger) Infof(s string, a ...any) {
+	l.l.Info(fmt.Sprintf(s, a...))
+}
+
+func (l *Logger) Warnf(s string, a ...any) {
+	l.l.Warn(fmt.Sprintf(s, a...))
+}
+func (l *Logger) Errorf(s string, a ...any) {
+	l.l.Error(fmt.Sprintf(s, a...))
+}
+func (l *Logger) Debugf(s string, a ...any) {
+	l.l.Debug(fmt.Sprintf(s, a...))
 }

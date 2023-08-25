@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"sisyphos/api"
 	"sisyphos/lib/apimiddleware"
+	"sisyphos/lib/cluster"
+	"sisyphos/lib/cluster/repos/postgres"
 	"sisyphos/lib/config"
 	"sisyphos/lib/log"
 	"sisyphos/lib/reqctx"
@@ -60,12 +63,49 @@ func main() {
 
 	r.Mount("/", api.Routes())
 
-	//displayRoutes(r)
+	if config.Config.ClusterEnabled {
+		cfg := cluster.ClusterConfig{
+			StartHook:    func() { fmt.Println("master fuck jeah") },
+			StopHook:     func() {},
+			HeatBeatRate: time.Duration(config.Config.ClusterHeatBeatRate) * time.Millisecond,
+			Log:          l,
+		}
 
-	//fmt.Println("listening on :3000")
-	log.Info(ctx, "listening on :7800")
-	//log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
-	err = http.ListenAndServe(":7800", r)
+		be := postgres.New(
+			postgres.PostgresConfig{
+				User:     config.Config.DBUser,
+				Port:     config.Config.DBPort,
+				Password: config.Config.DBPassword,
+				Host:     config.Config.DBHost,
+				Database: config.Config.DBDatabase,
+			}, l)
+
+		if err := be.Connect(); err != nil {
+			log.Error(ctx, err)
+			return
+		}
+
+		c, err := cluster.New(cfg, be)
+		if err != nil {
+			log.Error(ctx, err)
+			return
+		}
+
+		if err := be.AddEmptyLock(c.ID()); err != nil {
+			log.Error(ctx, err)
+			return
+		}
+		go func() {
+			if err := c.Run(); err != nil {
+				log.Error(ctx, err)
+				return
+			}
+		}()
+	}
+
+	listeningStr := fmt.Sprintf("%s:%s", config.Config.BindingIP, config.Config.BindingPort)
+	log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
+	err = http.ListenAndServe(listeningStr, r)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -78,15 +118,5 @@ func injectContextData(key reqctx.String, data interface{}) func(next http.Handl
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
-	}
-}
-
-func displayRoutes(r *chi.Mux) {
-	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-		fmt.Printf("%s %s\n", method, route)
-		return nil
-	}
-	if err := chi.Walk(r, walkFunc); err != nil {
-		fmt.Printf("Logging err: %s\n", err.Error())
 	}
 }

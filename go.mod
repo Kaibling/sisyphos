@@ -7,6 +7,9 @@ require (
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.2
+	github.com/go-sql-driver/mysql v1.7.0
+	github.com/jmoiron/sqlx v1.3.5
+	github.com/lib/pq v1.10.2
 	github.com/oklog/ulid v1.3.1
 	go.uber.org/zap v1.25.0
 	golang.org/x/crypto v0.4.0
@@ -17,7 +20,6 @@ require (
 
 require (
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.13.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
