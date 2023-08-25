@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sisyphos/lib/reqctx"
+	"sisyphos/lib/utils"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,7 +20,8 @@ func (f *Field) ToZap() zapcore.Field {
 }
 
 type Logger struct {
-	l *zap.Logger
+	l             *zap.Logger
+	defaultFields map[string]Field
 }
 
 func New() (*Logger, error) {
@@ -45,7 +47,25 @@ func New() (*Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Logger{l: logger}, nil
+	return &Logger{l: logger, defaultFields: map[string]Field{}}, nil
+}
+
+func (l *Logger) AddDefaultField(key, value string) {
+	f := Field{Key: key, Value: value}
+	l.defaultFields[key] = f
+}
+
+func (l *Logger) Copy() *Logger {
+	l2, _ := New()
+	for k, v := range l.defaultFields {
+		l2.defaultFields[k] = v
+	}
+	return l2
+
+}
+
+func (l *Logger) DE() {
+	utils.PrettyJSON(l.defaultFields)
 }
 
 func (l *Logger) Raw() *zap.Logger {
@@ -99,31 +119,102 @@ func (l *Logger) error(ctx context.Context, msg string, fields ...Field) {
 }
 
 func Debug(ctx context.Context, msg string, fields ...Field) {
-	get(ctx).debug(ctx, msg, fields...)
+	l := get(ctx)
+	zf := []Field{}
+	for k, v := range l.defaultFields {
+		found := false
+		for _, f := range fields {
+			if f.Key == k {
+				zf = append(zf, f)
+				found = true
+			}
+		}
+		if !found {
+			zf = append(zf, v)
+		}
+	}
+	l.debug(ctx, msg, zf...)
 }
 
 func Info(ctx context.Context, msg string, fields ...Field) {
-	get(ctx).info(ctx, msg, fields...)
+	l := get(ctx)
+	zf := []Field{}
+	for k, v := range l.defaultFields {
+		found := false
+		for _, f := range fields {
+			if f.Key == k {
+				zf = append(zf, f)
+				found = true
+			}
+		}
+		if !found {
+			zf = append(zf, v)
+		}
+	}
+	l.info(ctx, msg, zf...)
 }
 
 func Warn(ctx context.Context, msg string, fields ...Field) {
-	get(ctx).warn(ctx, msg, fields...)
+	l := get(ctx)
+	zf := []Field{}
+	for k, v := range l.defaultFields {
+		found := false
+		for _, f := range fields {
+			if f.Key == k {
+				zf = append(zf, f)
+				found = true
+			}
+		}
+		if !found {
+			zf = append(zf, v)
+		}
+	}
+	l.warn(ctx, msg, zf...)
 }
 
 func Error(ctx context.Context, err error, fields ...Field) {
-	get(ctx).error(ctx, err.Error(), fields...)
+	l := get(ctx)
+	zf := []Field{}
+	for k, v := range l.defaultFields {
+		found := false
+		for _, f := range fields {
+			if f.Key == k {
+				zf = append(zf, f)
+				found = true
+			}
+		}
+		if !found {
+			zf = append(zf, v)
+		}
+	}
+	l.error(ctx, err.Error(), zf...)
 }
 
 func (l *Logger) Infof(s string, a ...any) {
-	l.l.Info(fmt.Sprintf(s, a...))
+	zf := []zapcore.Field{}
+	for _, f := range l.defaultFields {
+		zf = append(zf, f.ToZap())
+	}
+	l.l.Info(fmt.Sprintf(s, a...), zf...)
 }
-
 func (l *Logger) Warnf(s string, a ...any) {
-	l.l.Warn(fmt.Sprintf(s, a...))
+	zf := []zapcore.Field{}
+	for _, f := range l.defaultFields {
+		zf = append(zf, f.ToZap())
+	}
+	l.l.Warn(fmt.Sprintf(s, a...), zf...)
 }
 func (l *Logger) Errorf(s string, a ...any) {
-	l.l.Error(fmt.Sprintf(s, a...))
+	zf := []zapcore.Field{}
+	for _, f := range l.defaultFields {
+		zf = append(zf, f.ToZap())
+	}
+	l.l.Error(fmt.Sprintf(s, a...), zf...)
 }
 func (l *Logger) Debugf(s string, a ...any) {
-	l.l.Debug(fmt.Sprintf(s, a...))
+	zf := []zapcore.Field{}
+	for _, f := range l.defaultFields {
+		zf = append(zf, f.ToZap())
+	}
+	l.l.Debug(fmt.Sprintf(s, a...), zf...)
 }

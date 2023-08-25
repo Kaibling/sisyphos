@@ -29,6 +29,7 @@ func main() {
 		fmt.Println("logger creation failed: ", err.Error())
 		return
 	}
+	l.AddDefaultField("component", "api")
 	ctx := context.WithValue(context.Background(), reqctx.String("logger"), l)
 	dbconfig := gormrepo.DBConfig{
 		User:     config.Config.DBUser,
@@ -64,11 +65,13 @@ func main() {
 	r.Mount("/", api.Routes())
 
 	if config.Config.ClusterEnabled {
+		cl := l.Copy()
+		cl.AddDefaultField("component", "cluster")
 		cfg := cluster.ClusterConfig{
 			StartHook:    func() { fmt.Println("master fuck jeah") },
 			StopHook:     func() {},
 			HeatBeatRate: time.Duration(config.Config.ClusterHeatBeatRate) * time.Millisecond,
-			Log:          l,
+			Log:          cl,
 		}
 
 		be := postgres.New(
@@ -78,7 +81,7 @@ func main() {
 				Password: config.Config.DBPassword,
 				Host:     config.Config.DBHost,
 				Database: config.Config.DBDatabase,
-			}, l)
+			}, cl)
 
 		if err := be.Connect(); err != nil {
 			log.Error(ctx, err)
