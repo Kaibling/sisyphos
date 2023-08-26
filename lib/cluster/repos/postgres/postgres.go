@@ -2,15 +2,18 @@ package postgres
 
 import (
 	"fmt"
-	"sisyphos/lib/cluster/repos"
 	"time"
+
+	"sisyphos/lib/cluster/repos"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-const tableName = "cluster_lock"
-const dbName = "cluster_lock"
+const (
+	tableName = "cluster_lock"
+	dbName    = "cluster_lock"
+)
 
 type PostgresBackend struct {
 	cfg PostgresConfig
@@ -71,6 +74,7 @@ func (be *PostgresBackend) Lock(key string, lockDuration time.Duration) (bool, e
 
 	return true, nil
 }
+
 func (be *PostgresBackend) UnLock(key string) error {
 	return nil
 }

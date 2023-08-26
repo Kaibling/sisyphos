@@ -142,7 +142,7 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 			action.Script = utils.ToPointer("")
 		}
 		if action.Variables == nil {
-			action.Variables.UnmarshalJSON([]byte("{}"))
+			_ = action.Variables.UnmarshalJSON([]byte("{}"))
 		}
 		err := tx.Omit("HostsRef.*").Omit("ActionsRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
@@ -235,6 +235,7 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	m := UnmarshalAction(a)
 	return &m, nil
 }
+
 func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 	var actions []Action
 	if err := r.db.Model(&Action{}).Where("id IN ?", ids).Preload("HostsRef").Preload("ActionsRef").Preload("TagsRef").Preload("GroupsRef").Find(&actions).Error; err != nil {
@@ -275,6 +276,7 @@ func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 	}
 	return actionExt, nil
 }
+
 func (r *ActionRepo) GetID(name string) (string, error) {
 	var a Action
 	if err := r.db.Model(&Action{}).Where(&Action{Name: &name}).First(&a).Error; err != nil {

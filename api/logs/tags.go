@@ -3,13 +3,13 @@ package logs
 import (
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	gormrepo "sisyphos/repositories/gorm"
 	"sisyphos/services"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -25,18 +25,18 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	logs, err := logService.ReadByRequestID(id)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(logs))
+	api_common.Render(w, r, env.SetResponse(logs))
 }
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, logService := prep(r)
 	logs, err := logService.ReadAll()
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(logs))
+	api_common.Render(w, r, env.SetResponse(logs))
 }

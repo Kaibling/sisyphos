@@ -3,7 +3,7 @@ package apimiddleware
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"sisyphos/lib/metadata"
@@ -25,11 +25,11 @@ func ReadQueryParams(next http.Handler) http.Handler {
 
 func ReadBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			return
 		}
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+		r.Body = io.NopCloser(bytes.NewBuffer(b))
 		ctx := context.WithValue(r.Context(), reqctx.String("bytebody"), b)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

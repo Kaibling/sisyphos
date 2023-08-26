@@ -87,5 +87,4 @@ func NewUlid() (string, error) {
 	} else {
 		return nl.String(), nil
 	}
-
 }

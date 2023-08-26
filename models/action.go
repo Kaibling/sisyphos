@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"sisyphos/lib/utils"
 	"time"
+
+	"sisyphos/lib/utils"
 )
 
 type Action struct {

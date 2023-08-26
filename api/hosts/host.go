@@ -2,9 +2,10 @@ package hosts
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -12,7 +13,6 @@ import (
 	"sisyphos/services"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -25,45 +25,45 @@ var prep = func(r *http.Request) (*utils.Envelope, *services.HostService) {
 
 func Create(w http.ResponseWriter, r *http.Request) {
 	env, hostService := prep(r)
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m []*models.Host
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	hosts, err := hostService.Create(m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(hosts))
+	api_common.Render(w, r, env.SetResponse(hosts))
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
 	env, hostService := prep(r)
 	name := chi.URLParam(r, "name")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m *models.Host
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	hosts, err := hostService.Update(name, m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(hosts))
+	api_common.Render(w, r, env.SetResponse(hosts))
 }
 
 func ReadOne(w http.ResponseWriter, r *http.Request) {
@@ -71,20 +71,20 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	hosts, err := hostService.ReadByName(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(hosts))
+	api_common.Render(w, r, env.SetResponse(hosts))
 }
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, hostService := prep(r)
 	hosts, err := hostService.ReadAll()
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(hosts))
+	api_common.Render(w, r, env.SetResponse(hosts))
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
@@ -95,8 +95,8 @@ func testConnection(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	err := hostService.TestConnection(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse("ok"))
+	api_common.Render(w, r, env.SetResponse("ok"))
 }

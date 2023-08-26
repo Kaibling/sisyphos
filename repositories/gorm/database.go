@@ -31,8 +31,8 @@ func InitDatabase(cfg DBConfig, l *slog.Logger) (*gorm.DB, error) {
 			Colorful:                  true,
 		},
 	)
-	//var dialector  gorm.Dialector
-	//dialector = mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database))
+	// var dialector  gorm.Dialector
+	// dialector = mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database))
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=europe/Amsterdam", cfg.Host, cfg.User, cfg.Password, cfg.Database, cfg.Port)
 	dialector := postgres.Open(dsn)
 	db, err := gorm.Open(dialector, &gorm.Config{Logger: newLogger})

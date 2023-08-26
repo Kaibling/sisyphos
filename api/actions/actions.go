@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/metadata"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
@@ -12,7 +13,6 @@ import (
 	"sisyphos/services"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -28,15 +28,15 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	var m []models.Action
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	actions, err := actionService.Create(m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(actions))
+	api_common.Render(w, r, env.SetResponse(actions))
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
@@ -45,15 +45,15 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	var m models.Action
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	actions, err := actionService.Update(name, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(actions))
+	api_common.Render(w, r, env.SetResponse(actions))
 }
 
 func ReadOne(w http.ResponseWriter, r *http.Request) {
@@ -61,10 +61,10 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	actions, err := actionService.ReadByName(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(actions))
+	api_common.Render(w, r, env.SetResponse(actions))
 }
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
@@ -86,10 +86,10 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 		actions, err = actionService.ReadAllExtendedPermission(username)
 	}
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(actions))
+	api_common.Render(w, r, env.SetResponse(actions))
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	extActions, err := actionService.ReadByName(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	runRepo := gormrepo.NewRunRepo(
@@ -118,10 +118,10 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	actionService.AddHostService(hostService)
 	runs, err := actionService.InitRun(extActions)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(runs))
+	api_common.Render(w, r, env.SetResponse(runs))
 }
 
 func readRuns(w http.ResponseWriter, r *http.Request) {
@@ -129,8 +129,8 @@ func readRuns(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	runs, err := actionService.ReadRuns(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(runs))
+	api_common.Render(w, r, env.SetResponse(runs))
 }

@@ -1,5 +1,7 @@
 package apperrors
 
-const TokenInvalid = "token not vaild"
-const ScriptRunFailed = "failed"
-const ScriptRunSuccess = "success"
+const (
+	TokenInvalid     = "token not vaild"
+	ScriptRunFailed  = "failed"
+	ScriptRunSuccess = "success"
+)

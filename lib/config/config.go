@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-var Config *Configuration
-var OS_PREFIX = "SISYPHOS"
+var (
+	Config    *Configuration
+	OS_PREFIX = "SISYPHOS"
+)
 
 type Configuration struct {
 	GlobalVars          map[string]interface{}

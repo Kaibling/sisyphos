@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 	gormrepo "sisyphos/repositories/gorm"
 	"sisyphos/services"
 
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -25,13 +25,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 	env, userService := prep(r)
 	var m models.Authentication
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	user, err := userService.Authenticate(m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(user))
+	api_common.Render(w, r, env.SetResponse(user))
 }

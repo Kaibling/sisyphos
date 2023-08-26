@@ -10,8 +10,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const tableName = "cluster_lock"
-const dbName = "cluster_lock"
+const (
+	tableName = "cluster_lock"
+	dbName    = "cluster_lock"
+)
 
 type MysqlBackend struct {
 	cfg MysqlConfig
@@ -73,6 +75,7 @@ func (be *MysqlBackend) Lock(key string, lockDuration time.Duration) (bool, erro
 
 	return true, nil
 }
+
 func (be *MysqlBackend) UnLock(key string) error {
 	return nil
 }

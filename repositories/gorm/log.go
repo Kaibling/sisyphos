@@ -1,8 +1,9 @@
 package gormrepo
 
 import (
-	"sisyphos/models"
 	"time"
+
+	"sisyphos/models"
 
 	"gorm.io/gorm"
 )

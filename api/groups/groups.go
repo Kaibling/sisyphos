@@ -2,9 +2,10 @@ package groups
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -12,7 +13,6 @@ import (
 	"sisyphos/services"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -25,45 +25,45 @@ var prep = func(r *http.Request) (*utils.Envelope, *services.GroupService) {
 
 func Create(w http.ResponseWriter, r *http.Request) {
 	env, groupService := prep(r)
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m []models.Group
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	groups, err := groupService.Create(m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(groups))
+	api_common.Render(w, r, env.SetResponse(groups))
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
 	env, groupService := prep(r)
 	name := chi.URLParam(r, "name")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m *models.Group
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	groups, err := groupService.Update(name, m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(groups))
+	api_common.Render(w, r, env.SetResponse(groups))
 }
 
 func ReadOne(w http.ResponseWriter, r *http.Request) {
@@ -71,20 +71,20 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	groups, err := groupService.ReadByName(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(groups))
+	api_common.Render(w, r, env.SetResponse(groups))
 }
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, groupService := prep(r)
 	groups, err := groupService.ReadAll()
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(groups))
+	api_common.Render(w, r, env.SetResponse(groups))
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {

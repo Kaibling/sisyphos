@@ -17,6 +17,7 @@ type LogService struct {
 func NewLogService(repo logRepo) *LogService {
 	return &LogService{repo: repo}
 }
+
 func (s *LogService) Log(url, body, method, user, requestID string) error {
 	n := []models.Log{
 		{
@@ -25,7 +26,8 @@ func (s *LogService) Log(url, body, method, user, requestID string) error {
 			Method:    method,
 			User:      user,
 			RequestID: requestID,
-		}}
+		},
+	}
 	_, e := s.repo.Create(n)
 	return e
 }

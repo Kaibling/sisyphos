@@ -69,7 +69,6 @@ func (s *ActionService) ReadRuns(actionname interface{}) ([]models.Run, error) {
 	}
 	n := sortRunsChild(runs)
 	return n, nil
-
 }
 
 func sortRunsChild(runs []models.Run) []models.Run {
@@ -162,12 +161,14 @@ func (s *ActionService) InitRun(r *models.Action) ([]models.Run, error) {
 	}
 	r.Variables["failonerrors"] = utils.PtrRead(r.FailOnErrors)
 	r.Variables = CombineVars(r.Variables, config.Config.GlobalVars)
-	s.run(r, "")
+	if rerr := s.run(r, ""); rerr != nil {
+		return nil, rerr
+	}
+
 	return s.runLogService.ReadByReqID()
 }
 
 func (s *ActionService) run(r *models.Action, parentID string) error {
-
 	execLog := models.NewRun(utils.PtrRead(r.Name),
 		s.runLogService.repo.GetUsername(),
 		s.runLogService.repo.GetRequestID(),
@@ -180,8 +181,9 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 		if err != nil {
 			execLog.Error = err.Error()
 			execLog.SetEndTime()
-			s.runLogService.Create(execLog)
-			// return err
+			if _, cerr := s.runLogService.Create(execLog); cerr != nil {
+				return cerr
+			}
 		}
 		t.Variables["failonerrors"] = utils.PtrRead(t.FailOnErrors)
 		t.Variables = CombineVars(r.Variables, t.Variables)
@@ -193,7 +195,9 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 			e := fmt.Errorf("script '%s' failed: %w", utils.PtrRead(r.Name), err)
 			execLog.Error = e.Error()
 			execLog.SetEndTime()
-			s.runLogService.Create(execLog)
+			if _, cerr := s.runLogService.Create(execLog); cerr != nil {
+				return cerr
+			}
 			return rerr
 		}
 		// TODO cancel if error ???
@@ -204,8 +208,9 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 			e := fmt.Errorf("no hosts for '%s'", utils.PtrRead(r.Name))
 			execLog.Error = e.Error()
 			execLog.SetEndTime()
-			s.runLogService.Create(execLog)
-			//return e
+			if _, cerr := s.runLogService.Create(execLog); cerr != nil {
+				return cerr
+			}
 		}
 
 		for _, connection := range r.Hosts {
@@ -222,10 +227,12 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 			if err != nil {
 				execLog.Error = err.Error()
 				execLog.SetEndTime()
-				s.runLogService.Create(execLog)
+				if _, cerr := s.runLogService.Create(execLog); cerr != nil {
+					return cerr
+				}
 				return err
 			}
-			//cfg := connection.ToSSHConfig()
+			// cfg := connection.ToSSHConfig()
 
 			cmd := replaceVariables(utils.PtrRead(r.Script), r.Variables)
 			output, serr := sshService.RunCommand(*cfg, cmd)
@@ -249,7 +256,9 @@ func (s *ActionService) run(r *models.Action, parentID string) error {
 		}
 	}
 	execLog.SetEndTime()
-	s.runLogService.Create(execLog)
+	if _, cerr := s.runLogService.Create(execLog); cerr != nil {
+		return cerr
+	}
 	return nil
 }
 

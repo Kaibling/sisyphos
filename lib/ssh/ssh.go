@@ -6,8 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"sisyphos/models"
 	"strings"
+
+	"sisyphos/models"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -43,7 +44,7 @@ func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, er
 	config := &ssh.ClientConfig{
 		User: cfg.Username,
 		Auth: authMethods,
-		//HostKeyCallback: ssh.InsecureIgnoreHostKey(), // hostKeyCallback,
+		// HostKeyCallback: ssh.InsecureIgnoreHostKey(), // hostKeyCallback,
 		HostKeyCallback: kh.ValidateHostKey,
 	}
 	fmt.Printf("trying cmd: %s on '%s'\n", command, connectionString)
@@ -69,7 +70,7 @@ func (s *SSHConnector) Execute(cfg models.SSHConfig, command string) (string, er
 func (s *SSHConnector) ReadHostKey(host string, port int) (string, error) {
 	kh := KnownHosts{}
 	sshConfig := &ssh.ClientConfig{HostKeyCallback: kh.ReadHostKey}
-	ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), sshConfig)
+	_, _ = ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), sshConfig) // TODO ????
 	return kh.key, nil
 }
 

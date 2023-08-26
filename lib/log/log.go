@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 
@@ -61,7 +62,6 @@ func (l *Logger) Copy() *Logger {
 		l2.defaultFields[k] = v
 	}
 	return l2
-
 }
 
 func (l *Logger) DE() {
@@ -86,6 +86,7 @@ func (l *Logger) prepareFields(ctx context.Context, fields ...Field) []zap.Field
 	}
 	return f
 }
+
 func (l *Logger) Printf(msg string, data ...interface{}) {
 	f := Field{
 		Key:   "gorm",
@@ -197,6 +198,7 @@ func (l *Logger) Infof(s string, a ...any) {
 	}
 	l.l.Info(fmt.Sprintf(s, a...), zf...)
 }
+
 func (l *Logger) Warnf(s string, a ...any) {
 	zf := []zapcore.Field{}
 	for _, f := range l.defaultFields {
@@ -204,6 +206,7 @@ func (l *Logger) Warnf(s string, a ...any) {
 	}
 	l.l.Warn(fmt.Sprintf(s, a...), zf...)
 }
+
 func (l *Logger) Errorf(s string, a ...any) {
 	zf := []zapcore.Field{}
 	for _, f := range l.defaultFields {
@@ -211,6 +214,7 @@ func (l *Logger) Errorf(s string, a ...any) {
 	}
 	l.l.Error(fmt.Sprintf(s, a...), zf...)
 }
+
 func (l *Logger) Debugf(s string, a ...any) {
 	zf := []zapcore.Field{}
 	for _, f := range l.defaultFields {

@@ -1,8 +1,9 @@
 package models
 
 import (
-	"sisyphos/lib/utils"
 	"time"
+
+	"sisyphos/lib/utils"
 )
 
 type Run struct {

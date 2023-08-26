@@ -2,9 +2,10 @@ package users
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
+	api_common "sisyphos/api/common"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -12,7 +13,6 @@ import (
 	"sisyphos/services"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"gorm.io/gorm"
 )
 
@@ -25,49 +25,49 @@ var prep = func(r *http.Request) (*utils.Envelope, *services.UserService) {
 
 func Create(w http.ResponseWriter, r *http.Request) {
 	env, userService := prep(r)
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m []models.User
 	if err = json.Unmarshal(body, &m); err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	if err := models.UserArrayValidate(m); err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 
 	users, err := userService.Create(m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(users))
+	api_common.Render(w, r, env.SetResponse(users))
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
 	env, userService := prep(r)
 	name := chi.URLParam(r, "name")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	var m map[string]interface{}
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
 	users, err := userService.Update(name, m)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(users))
+	api_common.Render(w, r, env.SetResponse(users))
 }
 
 func ReadOne(w http.ResponseWriter, r *http.Request) {
@@ -75,10 +75,10 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	users, err := userService.ReadByName(name)
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(users))
+	api_common.Render(w, r, env.SetResponse(users))
 }
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
@@ -89,10 +89,10 @@ func ReadAll(w http.ResponseWriter, r *http.Request) {
 	users, err := userService.ReadAllPermission(reqctx.GetContext("username", r).(string))
 	// users, err := userService.ReadAll()
 	if err != nil {
-		render.Render(w, r, env.SetError(err))
+		api_common.Render(w, r, env.SetError(err))
 		return
 	}
-	render.Render(w, r, env.SetResponse(users))
+	api_common.Render(w, r, env.SetResponse(users))
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
