@@ -1,12 +1,14 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"sisyphos/lib/apperrors"
 	"sisyphos/lib/config"
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -25,7 +27,10 @@ type User struct {
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {
 	ctx := tx.Statement.Context
-	username := ctx.Value("username").(string)
+	username, ok := ctx.Value(reqctx.String("username")).(string)
+	if !ok {
+		return fmt.Errorf("before hook: username is missing in transaction context")
+	}
 	groups := []Group{}
 	for _, g := range u.Groups {
 		groupRepo := NewGroupRepo(tx, username)
@@ -55,6 +60,8 @@ type UserRepo struct {
 }
 
 func NewUserRepo(db *gorm.DB, username string) *UserRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &UserRepo{db, username}
 }
 
@@ -90,7 +97,7 @@ func (r *UserRepo) ReadByName(name interface{}) (*models.User, error) {
 		return nil, fmt.Errorf("empty name not allowed")
 	}
 	var a User
-	err := r.db.Model(&User{}).Where(&User{Name: name.(string)}).Preload("TokenRef").Preload("GroupsRef").First(&a).Error
+	err := r.getDB().Model(&User{}).Where(&User{Name: name.(string)}).Preload("TokenRef").Preload("GroupsRef").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +106,7 @@ func (r *UserRepo) ReadByName(name interface{}) (*models.User, error) {
 
 func (r *UserRepo) GetID(name string) (string, error) {
 	var a User
-	if err := r.db.Model(&User{}).Where(&User{Name: name}).First(&a).Error; err != nil {
+	if err := r.getDB().Model(&User{}).Where(&User{Name: name}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -110,7 +117,7 @@ func (r *UserRepo) GetID(name string) (string, error) {
 
 func (r *UserRepo) ReadIDs(ids []any) ([]*models.User, error) {
 	var a []User
-	err := r.db.Model(&User{}).Where("id IN ?", ids).Preload("TokenRef").Preload("GroupsRef").Find(&a).Error
+	err := r.getDB().Model(&User{}).Where("id IN ?", ids).Preload("TokenRef").Preload("GroupsRef").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +127,7 @@ func (r *UserRepo) ReadIDs(ids []any) ([]*models.User, error) {
 
 func (r *UserRepo) Authenticate(auth models.Authentication) (*models.User, error) {
 	var u User
-	err := r.db.Model(&User{}).Where(&User{Name: auth.Username}).Preload("TokenRef").Preload("GroupsRef").First(&u).Error
+	err := r.getDB().Model(&User{}).Where(&User{Name: auth.Username}).Preload("TokenRef").Preload("GroupsRef").First(&u).Error
 	if err != nil {
 		return nil, err
 	}

@@ -1,9 +1,11 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -25,7 +27,10 @@ type Host struct {
 
 func (h *Host) BeforeSave(tx *gorm.DB) (err error) {
 	ctx := tx.Statement.Context
-	username := ctx.Value("username").(string)
+	username, ok := ctx.Value(reqctx.String("username")).(string)
+	if !ok {
+		return fmt.Errorf("before hook: username is missing in transaction context")
+	}
 	hosts := []Tag{}
 	for _, t := range h.Tags {
 		hostRepo := NewTagRepo(tx, username)
@@ -54,6 +59,8 @@ type HostRepo struct {
 }
 
 func NewHostRepo(db *gorm.DB, username string) *HostRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &HostRepo{db, username}
 }
 
@@ -122,7 +129,7 @@ func (r *HostRepo) GetID(name any) (string, error) {
 
 func (r *HostRepo) ReadAll() ([]models.Host, error) {
 	var a []Host
-	err := r.db.Model(&Host{}).Preload("TagsRef").Find(&a).Error
+	err := r.getDB().Model(&Host{}).Preload("TagsRef").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}

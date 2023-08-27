@@ -1,9 +1,11 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 
 	"gorm.io/gorm"
@@ -15,6 +17,8 @@ type PermissionRepo struct {
 }
 
 func NewPermissionRepo(db *gorm.DB, username string) *PermissionRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &PermissionRepo{db, username}
 }
 

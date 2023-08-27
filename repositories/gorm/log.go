@@ -1,8 +1,10 @@
 package gormrepo
 
 import (
+	"context"
 	"time"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -23,6 +25,8 @@ type LogRepo struct {
 }
 
 func NewLogRepo(db *gorm.DB, username string) *LogRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &LogRepo{db, username}
 }
 
@@ -52,7 +56,7 @@ func (r *LogRepo) Create(logs []models.Log) ([]models.Log, error) {
 
 func (r *LogRepo) ReadByRequestID(request_id interface{}) (*models.Log, error) {
 	var a Log
-	err := r.db.Model(&Log{}).Where(&Log{RequestID: request_id.(string)}).First(&a).Error
+	err := r.getDB().Model(&Log{}).Where(&Log{RequestID: request_id.(string)}).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (r *LogRepo) ReadByRequestID(request_id interface{}) (*models.Log, error) {
 
 func (r *LogRepo) ReadAll() ([]models.Log, error) {
 	var a []Log
-	err := r.db.Model(&Log{}).Find(&a).Error
+	err := r.getDB().Model(&Log{}).Find(&a).Error
 	if err != nil {
 		return nil, err
 	}

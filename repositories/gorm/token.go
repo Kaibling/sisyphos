@@ -1,10 +1,12 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -26,6 +28,8 @@ type TokenRepo struct {
 }
 
 func NewTokenRepo(db *gorm.DB, username string) *TokenRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &TokenRepo{db, username}
 }
 
@@ -54,7 +58,7 @@ func (r *TokenRepo) Create(userID string) (*models.Token, error) {
 
 func (r *TokenRepo) ReadByToken(token interface{}) (*models.Token, error) {
 	var a Token
-	err := r.db.Model(&Token{}).Where(&Token{Token: token.(string)}).First(&a).Error
+	err := r.getDB().Model(&Token{}).Where(&Token{Token: token.(string)}).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +68,7 @@ func (r *TokenRepo) ReadByToken(token interface{}) (*models.Token, error) {
 
 func (r *TokenRepo) GetID(token string) (string, error) {
 	var t Token
-	if err := r.db.Model(&Token{}).Where(&Token{Token: token}).First(&t).Error; err != nil {
+	if err := r.getDB().Model(&Token{}).Where(&Token{Token: token}).First(&t).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", token)
 		}
@@ -75,7 +79,7 @@ func (r *TokenRepo) GetID(token string) (string, error) {
 
 func (r *TokenRepo) ReadAll() ([]models.Token, error) {
 	var a []Token
-	err := r.db.Model(&Token{}).Find(&a).Error
+	err := r.getDB().Model(&Token{}).Find(&a).Error
 	if err != nil {
 		return nil, err
 	}

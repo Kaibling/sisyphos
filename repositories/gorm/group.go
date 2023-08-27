@@ -1,9 +1,11 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -23,7 +25,10 @@ type Group struct {
 
 func (g *Group) BeforeSave(tx *gorm.DB) (err error) {
 	ctx := tx.Statement.Context
-	username := ctx.Value("username").(string)
+	username, ok := ctx.Value(reqctx.String("username")).(string)
+	if !ok {
+		return fmt.Errorf("before hook: username is missing in transaction context")
+	}
 	if len(g.Users) > 0 {
 		userRepo := NewUserRepo(tx, username)
 		users := []User{}
@@ -78,6 +83,8 @@ type GroupRepo struct {
 }
 
 func NewGroupRepo(db *gorm.DB, username string) *GroupRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &GroupRepo{db, username}
 }
 
@@ -106,7 +113,7 @@ func (r *GroupRepo) Create(groups []models.Group) ([]models.Group, error) {
 
 func (r *GroupRepo) ReadByName(name interface{}) (*models.Group, error) {
 	var a Group
-	err := r.db.Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).Preload("UsersRef").Preload("AllowsRef").First(&a).Error
+	err := r.getDB().Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).Preload("UsersRef").Preload("AllowsRef").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +147,7 @@ func (r *GroupRepo) Update(name any, d *models.Group) (*models.Group, error) {
 
 func (r *GroupRepo) GetID(name any) (string, error) {
 	var a Group
-	if err := r.db.Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).First(&a).Error; err != nil {
+	if err := r.getDB().Model(&Group{}).Where(&Group{Name: utils.ToPointer(name.(string))}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -151,7 +158,7 @@ func (r *GroupRepo) GetID(name any) (string, error) {
 
 func (r *GroupRepo) ReadAll() ([]models.Group, error) {
 	var a []Group
-	err := r.db.Model(&Group{}).Preload("UsersRef").Preload("AllowsRef").Find(&a).Error
+	err := r.getDB().Model(&Group{}).Preload("UsersRef").Preload("AllowsRef").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}

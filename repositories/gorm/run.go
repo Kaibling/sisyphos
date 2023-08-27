@@ -1,8 +1,10 @@
 package gormrepo
 
 import (
+	"context"
 	"time"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -33,6 +35,8 @@ type RunRepo struct {
 }
 
 func NewRunRepo(db *gorm.DB, requestID, username string) *RunRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &RunRepo{db: db, username: username, requestid: requestID}
 }
 
@@ -63,7 +67,7 @@ func (r *RunRepo) Create(runs []models.Run) ([]models.Run, error) {
 
 func (r *RunRepo) ReadByID(id interface{}) (*models.Run, error) {
 	var a Run
-	err := r.db.Model(&Run{}).Where(&Run{DBModel: DBModel{ID: id.(string)}}).Preload("Action").Preload("Host").First(&a).Error
+	err := r.getDB().Model(&Run{}).Where(&Run{DBModel: DBModel{ID: id.(string)}}).Preload("Action").Preload("Host").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +94,7 @@ func (r *RunRepo) GetUsername() string {
 
 func (r *RunRepo) ReadAll() ([]models.Run, error) {
 	var a []Run
-	err := r.db.Model(&Run{}).Preload("Host").Preload("Action").Find(&a).Error
+	err := r.getDB().Model(&Run{}).Preload("Host").Preload("Action").Find(&a).Error
 	if err != nil {
 		return nil, err
 	}

@@ -1,9 +1,11 @@
 package gormrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/models"
 
 	"gorm.io/gorm"
@@ -21,6 +23,8 @@ type TagRepo struct {
 }
 
 func NewTagRepo(db *gorm.DB, username string) *TagRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &TagRepo{db, username}
 }
 
@@ -50,7 +54,7 @@ func (r *TagRepo) Create(tags []models.Tag) ([]models.Tag, error) {
 
 func (r *TagRepo) ReadByName(name interface{}) (*models.Tag, error) {
 	var a Tag
-	err := r.db.Model(&Tag{}).Where(&Tag{Name: name.(string)}).First(&a).Error
+	err := r.getDB().Model(&Tag{}).Where(&Tag{Name: name.(string)}).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +64,7 @@ func (r *TagRepo) ReadByName(name interface{}) (*models.Tag, error) {
 
 func (r *TagRepo) GetID(name string) (string, error) {
 	var a Tag
-	if err := r.db.Model(&Tag{}).Where(&Tag{Name: name}).First(&a).Error; err != nil {
+	if err := r.getDB().Model(&Tag{}).Where(&Tag{Name: name}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -71,7 +75,7 @@ func (r *TagRepo) GetID(name string) (string, error) {
 
 func (r *TagRepo) ReadAll() ([]models.Tag, error) {
 	var a []Tag
-	err := r.db.Model(&Tag{}).Find(&a).Error
+	err := r.getDB().Model(&Tag{}).Find(&a).Error
 	if err != nil {
 		return nil, err
 	}
