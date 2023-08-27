@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
@@ -104,6 +105,8 @@ func (r *HostRepo) Update(name any, d *models.Host) (*models.Host, error) {
 	} else {
 		uHost.ID = hid
 	}
+	uHost.UpdatedBy = r.username
+	uHost.UpdatedAt = time.Now()
 	if uHost.Tags != nil {
 		if err := r.getDB().Model(&uHost).Association("TagsRef").Replace(uHost.TagsRef); err != nil {
 			return nil, err

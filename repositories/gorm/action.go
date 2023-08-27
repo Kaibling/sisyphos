@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
@@ -314,6 +315,8 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	} else {
 		uAction.ID = uid
 	}
+	uAction.UpdatedBy = r.username
+	uAction.UpdatedAt = time.Now()
 	tx := r.getDB().Begin()
 	defer func() {
 		if e := recover(); e != nil {

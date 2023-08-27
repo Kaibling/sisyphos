@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
@@ -128,6 +129,8 @@ func (r *GroupRepo) Update(name any, d *models.Group) (*models.Group, error) {
 	} else {
 		uGroup.ID = gid
 	}
+	uGroup.UpdatedBy = r.username
+	uGroup.UpdatedAt = time.Now()
 	if uGroup.Users != nil {
 		if err := r.getDB().Model(&uGroup).Association("UsersRef").Replace(uGroup.UsersRef); err != nil {
 			return nil, err
