@@ -20,6 +20,7 @@ type actionRepo interface {
 	ReadByName(name interface{}) (*models.Action, error)
 	ReadIDs(ids []interface{}) ([]models.Action, error)
 	ReadRuns(actionname interface{}) ([]models.Run, error)
+	ReadToBeScheduled() ([]models.Action, error)
 }
 
 type ActionService struct {
@@ -127,6 +128,10 @@ func sortRunsChild(runs []models.Run) []models.Run {
 	}
 
 	return topLevel
+}
+
+func (s *ActionService) ReadToBeScheduled() ([]models.Action, error) {
+	return s.repo.ReadToBeScheduled()
 }
 
 func (s *ActionService) ReadAllExtendedPermission(username string) ([]models.Action, error) {

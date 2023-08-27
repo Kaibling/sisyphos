@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"sisyphos/api"
@@ -13,6 +16,7 @@ import (
 	"sisyphos/lib/config"
 	"sisyphos/lib/log"
 	"sisyphos/lib/reqctx"
+	"sisyphos/services"
 
 	gormrepo "sisyphos/repositories/gorm"
 
@@ -106,12 +110,56 @@ func main() {
 		}()
 	}
 
-	listeningStr := fmt.Sprintf("%s:%s", config.Config.BindingIP, config.Config.BindingPort)
-	log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
-	err = http.ListenAndServe(listeningStr, r)
+	// TODO only when no cluster enabled
+
+	as := services.NewActionService(gormrepo.NewActionRepo(db, "scheduler"))
+	scheduledActions, err := as.ReadToBeScheduled()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(ctx, err)
+		return
 	}
+	scheduler, scheduleCancel := services.NewSchedulerService(as)
+	for _, a := range scheduledActions {
+		scheduler.Add(a)
+	}
+
+	cl := make(chan os.Signal, 1)
+	signal.Notify(cl, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	listeningStr := fmt.Sprintf("%s:%s", config.Config.BindingIP, config.Config.BindingPort)
+	server := http.Server{Addr: listeningStr, Handler: r}
+	serverCtx, serverStopCtx := context.WithCancel(context.Background())
+	done := make(chan bool, 1)
+
+	go func() {
+		<-done
+		log.Info(ctx, "shutown api server")
+		// Shutdown signal with grace period of 5 seconds
+		shutdownCtx, cancel := context.WithTimeout(serverCtx, 5*time.Second)
+
+		go func() {
+			<-shutdownCtx.Done()
+			if shutdownCtx.Err() == context.DeadlineExceeded {
+				log.Warn(ctx, "graceful shutdown timed out.. forcing exit.")
+			}
+		}()
+
+		// Trigger graceful shutdown
+		err := server.Shutdown(shutdownCtx)
+		if err != nil {
+			log.Error(ctx, err)
+		}
+		log.Info(ctx, "server shutting down")
+		serverStopCtx()
+		cancel()
+	}()
+	log.Info(ctx, fmt.Sprintf("listening on %s", listeningStr))
+	if err = http.ListenAndServe(listeningStr, r); err != nil {
+		log.Error(ctx, err)
+	}
+	<-cl
+	done <- true
+	scheduleCancel()
 }
 
 func injectContextData(key reqctx.String, data interface{}) func(next http.Handler) http.Handler {

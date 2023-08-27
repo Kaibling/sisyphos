@@ -406,6 +406,15 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	return r.ReadByName(name)
 }
 
+func (r *ActionRepo) ReadToBeScheduled() ([]models.Action, error) {
+	var a []Action
+	err := r.getDB().Model(&Action{}).Preload("HostsRef").Where("actions.schedule_expr is not null").Find(&a).Error
+	if err != nil {
+		return nil, err
+	}
+	return UnmarshalArrayAction(a), nil
+}
+
 func MarshalAction(a models.Action) Action {
 	b, err := json.Marshal(a.Variables)
 	if err != nil {
