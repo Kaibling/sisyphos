@@ -877,6 +877,9 @@ components:
         script:
           type: string
           example: /root/update.sh
+        schedule_expression:
+          type: string
+          example: "1 1 * * *"
         tags:
           type: array
           items:
