@@ -11,6 +11,7 @@ type Action struct {
 	DBInfo
 	Name         *string                `json:"name"`
 	Groups       []string               `json:"groups"`
+	ScheduleExpr *string                `json:"schedule_expression"`
 	Script       *string                `json:"script"`
 	Tags         []string               `json:"tags"`
 	Actions      []OrderdAction         `json:"actions"`

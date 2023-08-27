@@ -1,11 +1,13 @@
 package gormrepo
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
+	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
 
@@ -26,6 +28,7 @@ type Action struct {
 	HostsRef       []Host                `gorm:"many2many:actions_hosts;"`
 	TagsRef        []Tag                 `gorm:"many2many:actions_tags;"`
 	Tags           []string              `gorm:"-"`
+	ScheduleExpr   *string
 	Script         *string
 	FailOnErrors   *bool
 	Variables      datatypes.JSON
@@ -33,7 +36,10 @@ type Action struct {
 
 func (a *Action) BeforeSave(tx *gorm.DB) (err error) {
 	ctx := tx.Statement.Context
-	username := ctx.Value("username").(string)
+	username, ok := ctx.Value(reqctx.String("username")).(string)
+	if !ok {
+		return fmt.Errorf("before hook: username is missing in transaction context")
+	}
 	triggers := []Action{}
 	for _, t := range a.Actions {
 		actionRepo := NewActionRepo(tx, username)
@@ -119,6 +125,8 @@ type ActionRepo struct {
 }
 
 func NewActionRepo(db *gorm.DB, username string) *ActionRepo {
+	ctx := context.WithValue(context.TODO(), reqctx.String("username"), username)
+	db = db.WithContext(ctx)
 	return &ActionRepo{db, username}
 }
 
@@ -132,19 +140,21 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 	tx := r.getDB().Begin()
 	defer func() {
 		if e := recover(); e != nil {
-			fmt.Println(e.(error).Error())
+			fmt.Printf("creation failed. rollback.: %s\n", e.(error).Error())
 			tx.Rollback()
 		}
 	}()
 	for _, a := range actions {
 		action := MarshalAction(a)
+		action.UpdatedBy = r.username
+		action.CreatedBy = r.username
 		if action.Script == nil {
 			action.Script = utils.ToPointer("")
 		}
 		if action.Variables == nil {
 			_ = action.Variables.UnmarshalJSON([]byte("{}"))
 		}
-		err := tx.Omit("HostsRef.*").Omit("ActionsRef.*").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
+		err := tx.Omit("HostsRef").Omit("ActionsRef").Omit("TagsRef.*").Omit("GroupsRef.*").Create(&action).Error
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -197,12 +207,12 @@ func (r *ActionRepo) Create(actions []models.Action) ([]models.Action, error) {
 
 func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	var a Action
-	err := r.db.Model(&Action{}).Where("name = ?", name.(string)).Preload("HostsRef").Preload("ActionsRef").Preload("TagsRef").Preload("GroupsRef").First(&a).Error
+	err := r.getDB().Model(&Action{}).Where("name = ?", name.(string)).Preload("HostsRef").Preload("ActionsRef").Preload("TagsRef").Preload("GroupsRef").First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	ah := []ActionsHosts{}
-	err = r.db.Model(&ActionsHosts{}).Where("action_id = ?", a.ID).Find(&ah).Error
+	err = r.getDB().Model(&ActionsHosts{}).Where("action_id = ?", a.ID).Find(&ah).Error
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +228,7 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 	a.OrderedHosts = conns
 
 	aa := []ActionsActions{}
-	err = r.db.Model(&ActionsActions{}).Where("action_id = ?", a.ID).Find(&aa).Error
+	err = r.getDB().Model(&ActionsActions{}).Where("action_id = ?", a.ID).Find(&aa).Error
 	if err != nil {
 		return nil, err
 	}
@@ -238,13 +248,13 @@ func (r *ActionRepo) ReadByName(name interface{}) (*models.Action, error) {
 
 func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 	var actions []Action
-	if err := r.db.Model(&Action{}).Where("id IN ?", ids).Preload("HostsRef").Preload("ActionsRef").Preload("TagsRef").Preload("GroupsRef").Find(&actions).Error; err != nil {
+	if err := r.getDB().Model(&Action{}).Where("id IN ?", ids).Preload("HostsRef").Preload("ActionsRef").Preload("TagsRef").Preload("GroupsRef").Find(&actions).Error; err != nil {
 		return nil, err
 	}
 	actionExt := []models.Action{}
 	for _, action := range actions {
 		ah := []ActionsHosts{}
-		if err := r.db.Model(&ActionsHosts{}).Where("action_id = ?", action.ID).Find(&ah).Error; err != nil {
+		if err := r.getDB().Model(&ActionsHosts{}).Where("action_id = ?", action.ID).Find(&ah).Error; err != nil {
 			return nil, err
 		}
 
@@ -259,7 +269,7 @@ func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 		action.OrderedHosts = conns
 
 		aa := []ActionsActions{}
-		if err := r.db.Model(&ActionsActions{}).Where("action_id = ?", action.ID).Find(&aa).Error; err != nil {
+		if err := r.getDB().Model(&ActionsActions{}).Where("action_id = ?", action.ID).Find(&aa).Error; err != nil {
 			return nil, err
 		}
 
@@ -279,7 +289,7 @@ func (r *ActionRepo) ReadIDs(ids []interface{}) ([]models.Action, error) {
 
 func (r *ActionRepo) GetID(name string) (string, error) {
 	var a Action
-	if err := r.db.Model(&Action{}).Where(&Action{Name: &name}).First(&a).Error; err != nil {
+	if err := r.getDB().Model(&Action{}).Where(&Action{Name: &name}).First(&a).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("GetID: id of '%s' not found", name)
 		}
@@ -307,7 +317,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 	tx := r.getDB().Begin()
 	defer func() {
 		if e := recover(); e != nil {
-			fmt.Println(e.(error).Error())
+			fmt.Printf("update failed.rollback.: %s\n", e.(error).Error())
 			tx.Rollback()
 		}
 	}()
@@ -396,7 +406,7 @@ func (r *ActionRepo) Update(name string, d *models.Action) (*models.Action, erro
 func MarshalAction(a models.Action) Action {
 	b, err := json.Marshal(a.Variables)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Printf("MarshalAction: %s\n", err.Error())
 	}
 	orderHost := []models.OrderedHost{}
 	for _, h := range a.Hosts {
@@ -423,6 +433,7 @@ func MarshalAction(a models.Action) Action {
 		Tags:           a.Tags,
 		Variables:      b,
 		FailOnErrors:   a.FailOnErrors,
+		ScheduleExpr:   a.ScheduleExpr,
 	}
 }
 
@@ -431,13 +442,13 @@ func UnmarshalAction(a Action) models.Action {
 	byteVar, err := a.Variables.MarshalJSON()
 	if err != nil {
 		// TODO error handling
-		fmt.Println(err.Error())
+		fmt.Printf("UnmarshalAction: %s\n", err.Error())
 	}
 	aa := map[string]any{}
 	err = json.Unmarshal(byteVar, &aa)
 	if err != nil {
 		// TODO error handling
-		fmt.Println(err.Error())
+		fmt.Printf("UnmarshalAction: %s\n", err.Error())
 	}
 	if len(a.Tags) == 0 {
 		a.Tags = []string{}
@@ -453,6 +464,7 @@ func UnmarshalAction(a Action) models.Action {
 		Groups:       a.Groups,
 		FailOnErrors: a.FailOnErrors,
 		Hosts:        a.OrderedHosts,
+		ScheduleExpr: a.ScheduleExpr,
 	}
 }
 

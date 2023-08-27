@@ -7,6 +7,7 @@ import (
 
 	"sisyphos/lib/apperrors"
 	"sisyphos/lib/config"
+	"sisyphos/lib/cron"
 	"sisyphos/lib/metadata"
 	"sisyphos/lib/ssh"
 	"sisyphos/lib/utils"
@@ -52,6 +53,11 @@ func (s *ActionService) Create(models []models.Action) ([]models.Action, error) 
 		}
 		if err := models[i].Validate(); err != nil {
 			return nil, err
+		}
+		if models[i].ScheduleExpr != nil {
+			if !cron.Validate(*models[i].ScheduleExpr) {
+				return nil, fmt.Errorf("schedule expression invalid")
+			}
 		}
 		models[i].Default()
 	}
@@ -147,6 +153,11 @@ func (s *ActionService) ReadAllFiltered(md metadata.MetaData, f filter) ([]model
 }
 
 func (s *ActionService) Update(name string, data *models.Action) (*models.Action, error) {
+	if data.ScheduleExpr != nil {
+		if !cron.Validate(*data.ScheduleExpr) {
+			return nil, fmt.Errorf("schedule expression invalid")
+		}
+	}
 	return s.repo.Update(name, data)
 }
 
