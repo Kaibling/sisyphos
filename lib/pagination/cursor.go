@@ -30,9 +30,12 @@ func (c *Cursor) Finish() {
 	// TODO convert after and before to base64
 }
 
-func ParseCursor(s string) CursorInfo {
+func ParseCursor(s string) *CursorInfo {
+	if s == "" {
+		return nil
+	}
 	parts := strings.Split(s, "|")
-	ci := CursorInfo{}
+	ci := &CursorInfo{}
 	// TODO verify
 	ci.Direction = parts[0]
 	ci.SortField = parts[2]

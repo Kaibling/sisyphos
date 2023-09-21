@@ -10,7 +10,6 @@ type IDReader interface {
 }
 
 func New(sortInfo SortInfo, dbReader IDReader, dbInfo DatabaseInfo) ([]string, *Cursor, error) {
-	//validate data
 	if sortInfo.Table == "" {
 		return nil, nil, fmt.Errorf("no table configured")
 	}

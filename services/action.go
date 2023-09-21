@@ -8,7 +8,6 @@ import (
 	"sisyphos/lib/apperrors"
 	"sisyphos/lib/config"
 	"sisyphos/lib/cron"
-	"sisyphos/lib/metadata"
 	"sisyphos/lib/ssh"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -24,10 +23,11 @@ type actionRepo interface {
 }
 
 type ActionService struct {
-	repo          actionRepo
-	permService   *PermissionService
-	runLogService *RunService
-	hostService   *HostService
+	repo              actionRepo
+	permService       *PermissionService
+	runLogService     *RunService
+	hostService       *HostService
+	paginationService *PaginationService
 }
 
 func NewActionService(repo actionRepo) *ActionService {
@@ -38,14 +38,16 @@ func (s *ActionService) AddPermissionService(p *PermissionService) {
 	s.permService = p
 }
 
-func (s *ActionService) AddRunService(r *RunService) {
-	s.runLogService = r
+func (s *ActionService) AddRunService(rs *RunService) {
+	s.runLogService = rs
 }
 
-func (s *ActionService) AddHostService(r *HostService) {
-	s.hostService = r
+func (s *ActionService) AddHostService(hs *HostService) {
+	s.hostService = hs
 }
-
+func (s *ActionService) AddPaginationService(ps *PaginationService) {
+	s.paginationService = ps
+}
 func (s *ActionService) Create(models []models.Action) ([]models.Action, error) {
 	for i := 0; i < len(models); i++ {
 		// add to default group, if no group is provided
@@ -134,7 +136,7 @@ func (s *ActionService) ReadToBeScheduled() ([]models.Action, error) {
 	return s.repo.ReadToBeScheduled()
 }
 
-func (s *ActionService) ReadAllExtendedPermission(username string) ([]models.Action, error) {
+func (s *ActionService) ReadAllPermitted(username string, md models.MetaData) ([]models.Action, error) {
 	if s.permService == nil {
 		return nil, errors.New("no permission service instantiated")
 	}
@@ -149,13 +151,13 @@ func (s *ActionService) ReadIDs(ids []interface{}) ([]models.Action, error) {
 	return s.repo.ReadIDs(ids)
 }
 
-func (s *ActionService) ReadAllFiltered(md metadata.MetaData, f filter) ([]models.Action, error) {
-	id, err := f.Filter(md.Filter)
-	if err != nil {
-		return nil, err
-	}
-	return s.repo.ReadIDs(id)
-}
+// func (s *ActionService) ReadAllFiltered(md models.MetaData, f filter) ([]models.Action, error) {
+// 	id, err := f.Filter(md.Filter)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return s.repo.ReadIDs(id)
+// }
 
 func (s *ActionService) Update(name string, data *models.Action) (*models.Action, error) {
 	if data.ScheduleExpr != nil {

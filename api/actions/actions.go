@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	api_common "sisyphos/api/common"
-	"sisyphos/lib/metadata"
 	"sisyphos/lib/reqctx"
 	"sisyphos/lib/utils"
 	"sisyphos/models"
@@ -69,22 +68,18 @@ func ReadOne(w http.ResponseWriter, r *http.Request) {
 
 func ReadAll(w http.ResponseWriter, r *http.Request) {
 	env, actionService := prep(r)
-	md := reqctx.GetContext("metadata", r).(metadata.MetaData)
+	md := reqctx.GetContext("metadata", r).(models.MetaData)
 	var actions []models.Action
 	var err error
 	db := reqctx.GetContext("db", r).(*gorm.DB)
-	if md.Filter != "" {
-		// TODO clean up. no db here
-		f := gormrepo.NewFilter(db, "actions")
-		actions, err = actionService.ReadAllFiltered(md, f)
-	} else {
-		username := reqctx.GetContext("username", r).(string)
-		permRepo := gormrepo.NewPermissionRepo(db, username)
-		permService := services.NewPermissionService(permRepo)
-		actionService.AddPermissionService(permService)
 
-		actions, err = actionService.ReadAllExtendedPermission(username)
-	}
+	username := reqctx.GetContext("username", r).(string)
+	permRepo := gormrepo.NewPermissionRepo(db, username)
+	permService := services.NewPermissionService(permRepo)
+	actionService.AddPermissionService(permService)
+
+	actions, err = actionService.ReadAllPermitted(username)
+
 	if err != nil {
 		api_common.Render(w, r, env.SetError(err))
 		return

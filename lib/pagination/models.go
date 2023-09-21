@@ -11,7 +11,6 @@ type DatabaseInfo struct {
 
 type CursorInfo struct {
 	Direction string
-	Order     string
 	PrimaryId string
 	SortId    string
 	SortField string
